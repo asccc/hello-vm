@@ -178,7 +178,99 @@ static void pop_val (struct vm *vm, u64 *val)
   vm->sp += 1;
 }
 
-static void mov_arg(struct vm *vm, struct vm_arg *arg0, struct vm_arg *arg1)
+static void mov_arg (struct vm *vm, struct vm_arg *arg0, struct vm_arg *arg1)
 {
-  
+  u64 val = 0;
+  read_arg(vm, arg0, &val);
+  copy_arg(vm, arg1, val);
+}
+
+static void read_arg (struct vm *vm, struct vm_arg *arg, u64 *val)
+{
+  switch (arg->type) {
+    case OPT_REG:
+      switch (arg->data.reg) {
+        case REG_BP:
+          *val = vm->bp;
+          break;
+        case REG_EP:
+          *val = vm->ep;
+          break;
+        case REG_SP:
+          *val = vm->sp;
+          break;
+        case REG_R0:
+          *val = vm->r0;
+          break;
+        case REG_R1:
+          *val = vm->r1;
+          break;
+        default:
+          puts("unknown register requested");
+          abort();
+          break;
+      }
+      break;
+    case OPT_OFF: {
+      if (arg->data.reg != REG_SP) {
+        puts("not implemented");
+        abort();
+        break;
+      }
+      i64 off = arg->data.off.val;
+      *val = *(vm->stk + off);
+      break;
+    }
+    case OPT_VAL:
+      *val = arg->data.val;
+      break;
+    case OPT_PTR:
+      *val = *(u64*) arg->data.ptr;
+      break;
+  }
+}
+
+static void copy_arg (struct vm *vm, struct vm_arg *arg, u64 val)
+{
+  switch (arg->type) {
+    case OPT_REG:
+      switch (arg->data.reg) {
+        case REG_BP:
+          vm->bp = val;
+          break;
+        case REG_EP:
+          vm->ep = val;
+          break;
+        case REG_SP:
+          vm->sp = val;
+          break;
+        case REG_R0:
+          vm->r0 = val;
+          break;
+        case REG_R1:
+          vm->r1 = val;
+          break;
+        default:
+          puts("unknown register");
+          abort();
+          break;
+      }
+      break;
+    case OPT_OFF: {
+      if (arg->data.reg != REG_SP) {
+        puts("not implemented");
+        abort();
+      }
+      i64 off = arg->data.off.val;
+      *(vm->stk + off) = val;
+      break;
+    }
+    case OPT_VAL:
+      puts("cannot write to value");
+      abort();
+      break;
+    case OPT_PTR:
+      *((u64*) arg->data.ptr) = val;
+      break;
+  }
 }

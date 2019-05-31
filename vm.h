@@ -68,7 +68,7 @@ enum vm_opt {
  * represents a offset expression
  */
 struct vm_off {
-  i64 off;
+  i64 val;
   enum vm_reg reg;
 };
 
