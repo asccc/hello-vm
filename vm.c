@@ -16,6 +16,7 @@ static ccstr opc_str(enum vm_opc op)
     OPC_CASE(PUSH);
     OPC_CASE(POP);
     OPC_CASE(MOV);
+    OPC_CASE(VRT);
     OPC_CASE(CALL);
     OPC_CASE(JMP);
     OPC_CASE(CMP);
@@ -27,6 +28,7 @@ static ccstr opc_str(enum vm_opc op)
     OPC_CASE(INC);
     OPC_CASE(DEC);
     OPC_CASE(RET);
+    OPC_CASE(SHL);
     OPC_CASE(END);
     default:
       return "UNKNOWN";
@@ -80,6 +82,10 @@ VM_CALL void vm_exec (struct vm *vm, struct vm_op *ops)
       case OPC_MOV: {
         mov_arg(vm, op->args, op->args + 1);
         NEXT
+      }
+      case OPC_VRT: {
+        (op->args->data.fnc)(vm);
+        NEXT;
       }
       case OPC_CALL: {
         push_val(vm, vm->sp);
@@ -154,6 +160,14 @@ VM_CALL void vm_exec (struct vm *vm, struct vm_op *ops)
         read_arg(vm, op->args, &a);
         a -= 1;
         copy_arg(vm, op->args, a);
+        NEXT;
+      }
+      case OPC_SHL: {
+        u64 a;
+        u64 b;
+        read_arg(vm, op->args + 0, &a);
+        read_arg(vm, op->args + 1, &b);
+        copy_arg(vm, op->args, a << b);
         NEXT;
       }
       case OPC_END: goto end;
@@ -261,6 +275,10 @@ static void read_arg (struct vm *vm, struct vm_arg *arg, u64 *val)
     case OPT_PTR:
       *val = *(u64*) arg->data.ptr;
       break;
+    case OPT_FNC:
+      puts("cannot read function");
+      abort();
+      break;
   }
 }
 
@@ -305,6 +323,10 @@ static void copy_arg (struct vm *vm, struct vm_arg *arg, u64 val)
       break;
     case OPT_PTR:
       *((u64*) arg->data.ptr) = val;
+      break;
+    case OPT_FNC:
+      puts("cannot write to function");
+      abort();
       break;
   }
 }

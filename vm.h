@@ -3,7 +3,8 @@
 #include "def.h"
 
 #define VM_CALL     __attribute__((nonnull))
-#define VM_FUNC(ID) __attribute__((noinline, nonnull)) void ID (struct vm *vm)
+#define VM_FUNC(ID) __attribute__((noinline, nonnull)) void VM_NAME(ID) (struct vm *vm)
+#define VM_NAME(ID) vm_sym__ ## ID
 
 #define VM_STK_MIN 0x00
 #define VM_STK_MAX 0x0f
@@ -41,7 +42,9 @@ enum vm_opc {
   OPC_PUSH,
   OPC_POP,
   OPC_MOV,
+  OPC_VRT,
   OPC_CALL,
+  OPC_RET,
   OPC_JMP,
   OPC_CMP,
   OPC_JE,
@@ -51,7 +54,9 @@ enum vm_opc {
   OPC_SUB,
   OPC_INC,
   OPC_DEC,
-  OPC_RET,
+  OPC_SHL,
+  // OPC_SHR,
+  // OPC_AND,
   OPC_END
 };
 
@@ -62,7 +67,8 @@ enum vm_opt {
   OPT_REG = 0,
   OPT_OFF,
   OPT_VAL,
-  OPT_PTR
+  OPT_PTR,
+  OPT_FNC
 };
 
 /**
@@ -83,6 +89,7 @@ struct vm_arg {
     intptr_t ptr;
     struct vm_off off;
     enum vm_reg reg;
+    void(*fnc)(struct vm*);
   } data;
 };
 
