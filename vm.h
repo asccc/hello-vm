@@ -5,8 +5,9 @@
 #define VM_CALL     __attribute__((nonnull))
 #define VM_FUNC(ID) __attribute__((noinline, nonnull)) void ID (struct vm *vm)
 
-#define VM_STK_MIN 0x0
-#define VM_STK_MAX 0xf
+#define VM_STK_MIN 0x00
+#define VM_STK_MAX 0x0f
+#define VM_STK_LEN 0x10
 
 /**
  * virtual machine struct
@@ -18,7 +19,7 @@ struct vm {
   i64 cx;
   u64 r0;
   u64 r1;
-  u64 stk[VM_STK_MAX + 1];
+  u64 stk[VM_STK_LEN];
 };
 
 /**

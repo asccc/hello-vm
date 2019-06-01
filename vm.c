@@ -1,5 +1,6 @@
 #include "vm.h"
 
+#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 
@@ -21,7 +22,7 @@ VM_CALL void vm_init (struct vm *vm)
   vm->ep = vm->cx = 0;
   vm->r0 = vm->r1 = 0;
 
-  memset(vm->stk, 0, 16);
+  memset(vm->stk, 0, VM_STK_LEN * sizeof(u64));
 }
 
 VM_CALL void vm_exec (struct vm *vm, struct vm_op *ops)
@@ -150,7 +151,7 @@ static void push_arg (struct vm *vm, struct vm_arg *arg)
 {
   u64 idx = vm->bp + vm->sp;
   STK_CHECK_OVERFLOW(idx);
-  read_arg(vm, arg, vm->stk[idx]);
+  read_arg(vm, arg, (vm->stk + idx));
   vm->sp -= 1;
 }
 
