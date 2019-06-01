@@ -11,14 +11,15 @@
 #define FNC(FN) { .type = OPT_FNC, .data.fnc = VM_NAME(FN) }
 
 VM_FUNC(echo_test) {
-  putc((char) (vm->r0 >> 56) & 0xff, stdout);
-  putc((char) (vm->r0 >> 48) & 0xff, stdout);
-  putc((char) (vm->r0 >> 40) & 0xff, stdout);
-  putc((char) (vm->r0 >> 32) & 0xff, stdout);
-  putc((char) (vm->r0 >> 24) & 0xff, stdout);
-  putc((char) (vm->r0 >> 16) & 0xff, stdout);
-  putc((char) (vm->r0 >> 8) & 0xff, stdout);
-  putc((char) vm->r0, stdout);
+  char arg = 0;
+  
+  if (!vm_args(vm, "c", &arg)) {
+    return;
+  }
+
+  if (arg != 0) {
+    putc(arg, stdout);
+  }
 }
 
 int main (void)
@@ -32,10 +33,7 @@ int main (void)
     OP2(MOV,  REG(R0), VAL(0x48656c6c6f2c2077)),
     OP1(PUSH, REG(R0)),
 
-    OP2(MOV,  REG(R1), VAL(8)),
-    OP1(POP,  REG(R0)),
     OP1(VRT,  FNC(echo_test)),
-    OP1(POP,  REG(R0)),
     OP1(VRT,  FNC(echo_test)),
 
     OP0(END)

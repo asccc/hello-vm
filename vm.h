@@ -2,6 +2,8 @@
 
 #include "def.h"
 
+#include <stdbool.h>
+
 #define VM_CALL     __attribute__((nonnull))
 #define VM_FUNC(ID) __attribute__((noinline, nonnull)) void VM_NAME(ID) (struct vm *vm)
 #define VM_NAME(ID) vm_sym__ ## ID
@@ -115,3 +117,13 @@ VM_CALL void vm_init (struct vm *);
  * @param  the opcodes to execute
  */
 VM_CALL void vm_exec (struct vm *, struct vm_op *);
+
+/**
+ * fetches arguments from the vm-stack 
+ * 
+ * @param the virtual machine struct
+ * @param the argument format string
+ * @param ... storage variables
+ * @return true on success, false on failure
+ */
+VM_CALL bool vm_args (struct vm *, cstr, ...);

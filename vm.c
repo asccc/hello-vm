@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <stdarg.h>
 
 #define NEXT vm->ep++; break;
 
@@ -176,6 +177,26 @@ VM_CALL void vm_exec (struct vm *vm, struct vm_op *ops)
 
   end:
   return;
+}
+
+VM_CALL bool vm_args (struct vm *vm, cstr fmt, ...)
+{
+  va_list args;
+  va_start(args, fmt);
+
+  for (; *fmt; fmt++) {
+    u64 val;
+    pop_val(vm, &val);
+    
+    switch (*fmt) {
+      case 'c':
+        *(va_arg(args, char*)) = (char) val;
+        break;
+    }
+  }
+
+  va_end(args);
+  return true;
 }
 
 #define STK_CHECK_OVERFLOW(i) { \
