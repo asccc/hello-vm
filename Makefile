@@ -1,5 +1,5 @@
 CC=$(shell which cc)
-CCFLAGS=-std=gnu11 -Wall -Werror -pedantic
+CCFLAGS=-std=gnu11 -Wall -Werror -Wno-missing-braces -pedantic
 LD=$(shell which ld)
 LDFLAGS=-lm
 
@@ -13,6 +13,9 @@ all: $(OBJS)
 
 %.o: %.c
 	$(CC) $(CCFLAGS) -c $<
+
+test: all
+	./$(PROG)
 
 clean:
 	rm $(PROG)

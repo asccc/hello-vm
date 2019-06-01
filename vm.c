@@ -6,6 +6,35 @@
 
 #define NEXT vm->ep++; break;
 
+static ccstr opc_str(enum vm_opc op)
+{
+  #define OPC_CASE(A) \
+    case OPC_ ## A: return # A
+
+  switch (op) {
+    OPC_CASE(NOP);
+    OPC_CASE(PUSH);
+    OPC_CASE(POP);
+    OPC_CASE(MOV);
+    OPC_CASE(CALL);
+    OPC_CASE(JMP);
+    OPC_CASE(CMP);
+    OPC_CASE(JE);
+    OPC_CASE(JL);
+    OPC_CASE(JG);
+    OPC_CASE(ADD);
+    OPC_CASE(SUB);
+    OPC_CASE(INC);
+    OPC_CASE(DEC);
+    OPC_CASE(RET);
+    OPC_CASE(END);
+    default:
+      return "UNKNOWN";
+  }
+
+  #undef OPC_CASE
+}
+
 static void push_arg (struct vm *, struct vm_arg *);
 static void push_val (struct vm *, u64);
 static void pop_arg (struct vm *, struct vm_arg *);
@@ -18,7 +47,8 @@ VM_CALL void vm_init (struct vm *vm)
 {
   assert(vm != 0);
 
-  vm->sp = vm->bp = 15;
+  vm->sp = VM_STK_MAX;
+  vm->bp = VM_STK_MIN;
   vm->ep = vm->cx = 0;
   vm->r0 = vm->r1 = 0;
 
@@ -32,6 +62,9 @@ VM_CALL void vm_exec (struct vm *vm, struct vm_op *ops)
 
   for (struct vm_op *op;;) {
     op = (ops + vm->ep);
+    
+    puts(opc_str(op->kind));
+
     switch (op->kind) {
       case OPC_NOP: {
         NEXT
@@ -132,7 +165,7 @@ VM_CALL void vm_exec (struct vm *vm, struct vm_op *ops)
 }
 
 #define STK_CHECK_OVERFLOW(i) { \
-  if ((i) == VM_STK_MIN) {      \
+  if ((i) < VM_STK_MIN) {      \
     puts("stack overflow!");    \
     abort();                    \
     return;                     \
@@ -140,7 +173,7 @@ VM_CALL void vm_exec (struct vm *vm, struct vm_op *ops)
 }
 
 #define STK_CHECK_UNDERFLOW(i) { \
-  if ((i) == VM_STK_MAX) {       \
+  if ((i) > VM_STK_MAX) {       \
     puts("stack underflow!");    \
     abort();                     \
     return;                      \
@@ -182,8 +215,8 @@ static void pop_val (struct vm *vm, u64 *val)
 static void mov_arg (struct vm *vm, struct vm_arg *arg0, struct vm_arg *arg1)
 {
   u64 val = 0;
-  read_arg(vm, arg0, &val);
-  copy_arg(vm, arg1, val);
+  read_arg(vm, arg1, &val);
+  copy_arg(vm, arg0, val);
 }
 
 static void read_arg (struct vm *vm, struct vm_arg *arg, u64 *val)
