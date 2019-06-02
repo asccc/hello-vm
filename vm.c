@@ -253,7 +253,4 @@ static VM_INTR copy_val (struct vm *vm, vm_val *dst, vm_val *src)
     default:
       assert(0);
   }
-
-  /* clear source */
-  val_free(vm, src);
 }

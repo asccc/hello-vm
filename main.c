@@ -36,7 +36,18 @@
 
 VM_FUNC(echo_r0) 
 {
-  puts(VAL_STR(&vm->r0));
+  char *str_r0 = VAL_STR(&vm->r0);
+  char *str_r1 = VAL_STR(&vm->r1);
+  if (str_r0 == 0) {
+    puts("R0 is null");
+  } else {
+    puts(str_r0);
+  }
+  if (str_r1 == 0) {
+    puts("R1 is null");
+  } else {
+    puts(str_r1);
+  }
 }
 
 int main (void)
@@ -46,6 +57,7 @@ int main (void)
 
   struct vm_op ops[] = {
     OP2(MOV, REG(R0), STR("hello, world!")),
+    OP2(MOV, REG(R1), REG(R0)),
     OP1(VRT, FNC(echo_r0)),
     OP0(END)
   };
