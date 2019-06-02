@@ -25,10 +25,18 @@
   .data.val.data.fnc = VM_NAME(FN) \
 }
 
+#define STR(CA) {                       \
+  .type = OPT_VAL,                      \
+  .data.val.type = VAR_STR,             \
+  .data.val.intr = true,                \
+  .data.val.data.str.data = CA,         \
+  .data.val.data.str.size = sizeof(CA), \
+  .data.val.data.str.buff = 0           \
+}
+
 VM_FUNC(echo_r0) 
 {
-  printf("R0 = %lu\n", VAL_NUM(&vm->r0));
-  printf("R1 = %lu\n", VAL_NUM(&vm->r1));
+  puts(VAL_STR(&vm->r0));
 }
 
 int main (void)
@@ -36,22 +44,8 @@ int main (void)
   struct vm vm;
   vm_init(&vm);
 
-  /**
-   * INIT NUM(0), STR("hello world")
-   * INIT NUM(1), NUM("11")
-   * SEND VAR(0)
-   * CALL echo_var
-   * SEND VAR(1)
-   * CALL echo_var
-   * END 
-   */
-
   struct vm_op ops[] = {
-    OP2(MOV, REG(R0), NUM(20)),
-    OP2(MOV, REG(R1), NUM(2)),
-    OP2(MOV, NUM(22), REG(R1)),
-    // OP2(MUL, REG(R0), REG(R1)),
-    // OP2(ADD, REG(R0), REG(R1)),
+    OP2(MOV, REG(R0), STR("hello, world!")),
     OP1(VRT, FNC(echo_r0)),
     OP0(END)
   };

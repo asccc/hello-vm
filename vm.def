@@ -1,14 +1,52 @@
-nop #0 (
-  /next
-)
-mov #2 (
-  %copy_arg $0 $1
-  /next
-)
-vrt #1 (
+OP_HANDLER(NOP) {
+  NEXT
+}
+
+OP_HANDLER(MOV, ANY|W, ANY|R) {
+  %copy_arg $0, $1
+  NEXT
+}
+
+OP_HANDLER(VRT, VAR_FNC) {
   %call_arg $0
-  /next
-)
-end #0 (
-  /halt
-)
+  NEXT
+}
+
+OP_HANDLER(INC, VAR_NUM|RW) {
+  VAL_NUM($0)++;
+  NEXT
+}
+
+OP_HANDLER(DEC, VAR_NUM|RW) {
+  VAL_NUM($0)--;
+  NEXT
+}
+
+OP_HANDLER(ADD, VAR_NUM|RW, VAR_NUM|R) {
+  VAL_NUM($0) += VAL_NUM($1);
+  NEXT
+}
+
+OP_HANDLER(SUB, VAR_NUM|RW, VAR_NUM|R) {
+  VAL_NUM($0) -= VAL_NUM($1);
+  NEXT
+}
+
+OP_HANDLER(MUL, VAR_NUM|RW, VAR_NUM|R) {
+  VAL_NUM($0) *= VAL_NUM($1);
+  NEXT
+}
+
+OP_HANDLER(DIV, VAR_NUM|RW, VAR_NUM|R) {
+  if (VAL_NUM($1) == 0) {
+    puts("division by zero");
+    abort();
+    break;
+  }
+  VAL_NUM($0) /= VAL_NUM($1);
+  NEXT
+}
+
+OP_HANDLER(END) {
+  HALT
+}

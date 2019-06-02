@@ -72,7 +72,7 @@ struct vm_val {
   enum vm_var type;
   bool intr;
   union {
-    u64 num;
+    i64 num;
     struct vm_str str;
     void(*fnc)(struct vm*);
   } data;

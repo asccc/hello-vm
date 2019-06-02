@@ -1,7 +1,7 @@
 CC=$(shell which cc)
 CCFLAGS=-std=gnu11 -Wall -Werror -Wno-missing-braces \
 	-Wno-unused-function -pedantic
-	
+
 LDFLAGS=-lm
 
 OBJS=$(shell php -r '                             \
@@ -14,7 +14,7 @@ PROG=hello-vm
 
 .PHONY: clean
 
-all: gen $(OBJS)
+all: $(OBJS)
 	$(CC) $(CCFLAGS) -o $(PROG) $(OBJS) $(LDFLAGS)
 
 gen:

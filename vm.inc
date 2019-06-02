@@ -1,5 +1,4 @@
 case OPC_NOP: {
-  puts("NOP");
   if (op->argc != 0) {
     puts("invalid number of arguments");
     abort();
@@ -9,7 +8,6 @@ case OPC_NOP: {
   break;
 }
 case OPC_MOV: {
-  puts("MOV");
   if (op->argc != 2) {
     puts("invalid number of arguments");
     abort();
@@ -20,7 +18,6 @@ case OPC_MOV: {
   break;
 }
 case OPC_VRT: {
-  puts("VRT");
   if (op->argc != 1) {
     puts("invalid number of arguments");
     abort();
@@ -31,7 +28,6 @@ case OPC_VRT: {
   break;
 }
 case OPC_END: {
-  puts("END");
   if (op->argc != 0) {
     puts("invalid number of arguments");
     abort();
