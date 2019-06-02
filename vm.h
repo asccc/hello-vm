@@ -4,35 +4,23 @@
 
 #include <stdbool.h>
 
-#define VM_CALL     __attribute__((nonnull))
-#define VM_FUNC(ID) __attribute__((noinline, nonnull)) void VM_NAME(ID) (struct vm *vm)
 #define VM_NAME(ID) vm_sym__ ## ID
 
-#define VM_STK_MIN 0x00
-#define VM_STK_MAX 0x0f
-#define VM_STK_LEN 0x10
+#define VM_CALL __attribute__((nonnull))
+  
+#define VM_INTR VM_CALL void
+
+#define VM_FUNC(ID)                  \
+  __attribute__((noinline, nonnull)) \
+  void VM_NAME(ID) (struct vm *vm)
+
+struct vm;
 
 /**
- * virtual machine struct
- */
-struct vm {
-  u64 sp;
-  u64 bp;
-  u64 ep;
-  i64 cx;
-  u64 r0;
-  u64 r1;
-  u64 stk[VM_STK_LEN];
-};
-
-/**
- * register kind 
+ * represents a register slot
  */
 enum vm_reg {
-  REG_SP = 0,
-  REG_BP,
-  REG_EP,
-  REG_R0,
+  REG_R0 = 0,
   REG_R1
 };
 
@@ -41,24 +29,12 @@ enum vm_reg {
  */
 enum vm_opc {
   OPC_NOP = 0,
-  OPC_PUSH,
-  OPC_POP,
+  // OPC_PUSH,
+  // OPC_POP,
   OPC_MOV,
   OPC_VRT,
-  OPC_CALL,
-  OPC_RET,
-  OPC_JMP,
-  OPC_CMP,
-  OPC_JE,
-  OPC_JL,
-  OPC_JG,
-  OPC_ADD,
-  OPC_SUB,
-  OPC_INC,
-  OPC_DEC,
-  OPC_SHL,
-  // OPC_SHR,
-  // OPC_AND,
+  // OPC_JMP,
+  // OPC_CMP,
   OPC_END
 };
 
@@ -67,19 +43,44 @@ enum vm_opc {
  */
 enum vm_opt {
   OPT_REG = 0,
-  OPT_OFF,
   OPT_VAL,
-  OPT_PTR,
-  OPT_FNC
 };
 
 /**
- * represents a offset expression
+ * represents a string 
  */
-struct vm_off {
-  i64 val;
-  enum vm_reg reg;
+struct vm_str {
+  char *data;
+  u32 size;
+  u32 buff;
 };
+
+/**
+ * represents a value variant 
+ */
+enum vm_var {
+  VAR_NIL = 0,
+  VAR_NUM,
+  VAR_STR,
+  VAR_FNC
+};
+
+/**
+ * represents a value
+ */
+struct vm_val {
+  enum vm_var type;
+  bool intr;
+  union {
+    u64 num;
+    struct vm_str str;
+    void(*fnc)(struct vm*);
+  } data;
+};
+
+#define VAL_NUM(v) (v)->data.num
+#define VAL_STR(v) (v)->data.str.data
+#define VAL_FNC(v) (v)->data.fnc
 
 /**
  * represents a opcode argument
@@ -87,11 +88,8 @@ struct vm_off {
 struct vm_arg {
   enum vm_opt type;
   union {
-    u64 val;
-    intptr_t ptr;
-    struct vm_off off;
+    struct vm_val val;
     enum vm_reg reg;
-    void(*fnc)(struct vm*);
   } data;
 };
 
@@ -100,7 +98,33 @@ struct vm_arg {
  */
 struct vm_op {
   enum vm_opc kind;
+  u32 argc;
   struct vm_arg args[2];
+};
+
+/**
+ * represents a stack frame
+ */
+struct vm_stk {
+  szt ep;
+  szt size;
+  szt buff;
+  u32 argc;
+  struct vm_val *argv;
+  struct vm_val *data;
+  struct vm_stk *prev;
+  struct vm_stk *next;
+};
+
+/**
+ * virtual machine struct
+ */
+struct vm {
+  szt ep;
+  struct vm_val r0;
+  struct vm_val r1;
+  struct vm_stk bp;
+  struct vm_stk *sp;
 };
 
 /**
@@ -119,11 +143,11 @@ VM_CALL void vm_init (struct vm *);
 VM_CALL void vm_exec (struct vm *, struct vm_op *);
 
 /**
- * fetches arguments from the vm-stack 
+ * fetches arguments from the current stack-frame
  * 
  * @param the virtual machine struct
  * @param the argument format string
  * @param ... storage variables
  * @return true on success, false on failure
  */
-VM_CALL bool vm_args (struct vm *, cstr, ...);
+VM_CALL bool vm_args (struct vm *, const char *, ...);

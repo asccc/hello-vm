@@ -1,0 +1,14 @@
+nop #0 (
+  /next
+)
+mov #2 (
+  %copy_arg $0 $1
+  /next
+)
+vrt #1 (
+  %call_arg $0
+  /next
+)
+end #0 (
+  /halt
+)

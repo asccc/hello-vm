@@ -2,24 +2,33 @@
 
 #include <stdio.h>
 
-#define OP0(OP) { .kind = OPC_ ## OP, .args = {0} }
-#define OP1(OP, A1) { .kind = OPC_ ## OP, .args[0] = A1 }
-#define OP2(OP, A1, A2) { .kind = OPC_ ## OP, .args = {A1, A2} }
+#define OP0(OP) { .kind = OPC_ ## OP, .argc = 0, .args = {0} }
+#define OP1(OP, A1) { .kind = OPC_ ## OP, .argc = 1, .args[0] = A1 }
+#define OP2(OP, A1, A2) { .kind = OPC_ ## OP, .argc = 2, .args = {A1, A2} }
 
-#define REG(ID) { .type = OPT_REG, .data.reg = REG_ ## ID }
-#define VAL(VL) { .type = OPT_VAL, .data.val = VL }
-#define FNC(FN) { .type = OPT_FNC, .data.fnc = VM_NAME(FN) }
+#define REG(ID) {        \
+  .type = OPT_REG,       \
+  .data.reg = REG_ ## ID \
+}
 
-VM_FUNC(echo_test) {
-  char arg = 0;
-  
-  if (!vm_args(vm, "c", &arg)) {
-    return;
-  }
+#define NUM(VL) {           \
+  .type = OPT_VAL,          \
+  .data.val.type = VAR_NUM, \
+  .data.val.intr = true,    \
+  .data.val.data.num = VL   \
+}
 
-  if (arg != 0) {
-    putc(arg, stdout);
-  }
+#define FNC(FN) {                  \
+  .type = OPT_VAL,                 \
+  .data.val.type = VAR_FNC,        \
+  .data.val.intr = true,           \
+  .data.val.data.fnc = VM_NAME(FN) \
+}
+
+VM_FUNC(echo_r0) 
+{
+  printf("R0 = %lu\n", VAL_NUM(&vm->r0));
+  printf("R1 = %lu\n", VAL_NUM(&vm->r1));
 }
 
 int main (void)
@@ -27,28 +36,26 @@ int main (void)
   struct vm vm;
   vm_init(&vm);
 
+  /**
+   * INIT NUM(0), STR("hello world")
+   * INIT NUM(1), NUM("11")
+   * SEND VAR(0)
+   * CALL echo_var
+   * SEND VAR(1)
+   * CALL echo_var
+   * END 
+   */
+
   struct vm_op ops[] = {
-    OP2(MOV,  REG(R0), VAL(0x6f726c6421000000)),
-    OP1(PUSH, REG(R0)),
-    OP2(MOV,  REG(R0), VAL(0x48656c6c6f2c2077)),
-    OP1(PUSH, REG(R0)),
-
-    OP1(VRT,  FNC(echo_test)),
-    OP1(VRT,  FNC(echo_test)),
-
+    OP2(MOV, REG(R0), NUM(20)),
+    OP2(MOV, REG(R1), NUM(2)),
+    OP2(MOV, NUM(22), REG(R1)),
+    // OP2(MUL, REG(R0), REG(R1)),
+    // OP2(ADD, REG(R0), REG(R1)),
+    OP1(VRT, FNC(echo_r0)),
     OP0(END)
   };
 
-  vm_exec(&vm, ops);
-
-  printf(
-    "vm.sp = %lu\nvm.bp = %lu\nvm.ep = %lu\n"
-    "bm.cx = %ld\nvm.r0 = %lu\nvm.r1 = %lu\n\n",
-    vm.sp, vm.bp, vm.ep, 
-    vm.cx, vm.r0, vm.r1
-  );
-
-  printf("%lu\n", vm.r0 * 100 + vm.r1);
-  
+  vm_exec(&vm, ops); 
   return 0;
 }

@@ -1,63 +1,61 @@
 #include "vm.h"
 
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <stdarg.h>
 
-#define NEXT vm->ep++; break;
+/* lazy typedefs */
+typedef struct vm_arg vm_arg;
+typedef struct vm_val vm_val;
+typedef struct vm_stk vm_stk;
+typedef struct vm_str vm_str;
 
-static ccstr opc_str(enum vm_opc op)
-{
-  #define OPC_CASE(A) \
-    case OPC_ ## A: return # A
+#if 0
+/* push argument to stack */
+static VM_INTR push_arg (struct vm *, struct vm_arg *);
+/* push value to stack */
+static VM_INTR push_val (struct vm *, struct vm_val *);
+/* pop stack to argument */
+static VM_INTR pop_arg (struct vm *, struct vm_arg *);
+/* pop stack to value */
+static VM_INTR pop_val (struct vm *, struct vm_val *);
+#endif
 
-  switch (op) {
-    OPC_CASE(NOP);
-    OPC_CASE(PUSH);
-    OPC_CASE(POP);
-    OPC_CASE(MOV);
-    OPC_CASE(VRT);
-    OPC_CASE(CALL);
-    OPC_CASE(JMP);
-    OPC_CASE(CMP);
-    OPC_CASE(JE);
-    OPC_CASE(JL);
-    OPC_CASE(JG);
-    OPC_CASE(ADD);
-    OPC_CASE(SUB);
-    OPC_CASE(INC);
-    OPC_CASE(DEC);
-    OPC_CASE(RET);
-    OPC_CASE(SHL);
-    OPC_CASE(END);
-    default:
-      return "UNKNOWN";
-  }
+/* copy arguments */
+static VM_INTR copy_arg (struct vm *, vm_arg *, vm_arg *);
+/* copy values */
+static VM_INTR copy_val (struct vm *, vm_val *, vm_val *);
+/* calls a argument symbol */ 
+static VM_INTR call_arg (struct vm *, vm_arg *);
 
-  #undef OPC_CASE
-}
+/* initializes a stack */
+static void stk_init (struct vm *, vm_stk *);
+/* releases a stack */
+static void stk_free (struct vm *, vm_stk *);
 
-static void push_arg (struct vm *, struct vm_arg *);
-static void push_val (struct vm *, u64);
-static void pop_arg (struct vm *, struct vm_arg *);
-static void pop_val (struct vm *, u64 *);
-static void mov_arg (struct vm *, struct vm_arg *, struct vm_arg *);
-static void read_arg (struct vm *, struct vm_arg *, u64 *);
-static void copy_arg (struct vm *, struct vm_arg *, u64);
+/* initialize a value */
+static VM_INTR val_init (struct vm *, vm_val *);
+/* releases a value */
+static VM_INTR val_free (struct vm *, vm_val *);
 
+/**
+ * {@inheritdoc}
+ */
 VM_CALL void vm_init (struct vm *vm)
 {
   assert(vm != 0);
-
-  vm->sp = VM_STK_MAX;
-  vm->bp = VM_STK_MIN;
-  vm->ep = vm->cx = 0;
-  vm->r0 = vm->r1 = 0;
-
-  memset(vm->stk, 0, VM_STK_LEN * sizeof(u64));
+  vm->ep = 0;
+  val_init(vm, &(vm->r0));
+  val_init(vm, &(vm->r1));
+  vm->sp = &(vm->bp);
+  stk_init(vm, vm->sp);
 }
 
+/**
+ * {@inheritdoc}
+ */
 VM_CALL void vm_exec (struct vm *vm, struct vm_op *ops)
 {
   assert(vm != 0);
@@ -65,113 +63,8 @@ VM_CALL void vm_exec (struct vm *vm, struct vm_op *ops)
 
   for (struct vm_op *op;;) {
     op = (ops + vm->ep);
-    
-    puts(opc_str(op->kind));
-
     switch (op->kind) {
-      case OPC_NOP: {
-        NEXT
-      }
-      case OPC_PUSH: {
-        push_arg(vm, op->args);
-        NEXT
-      }
-      case OPC_POP: {
-        pop_arg(vm, op->args);
-        NEXT
-      }
-      case OPC_MOV: {
-        mov_arg(vm, op->args, op->args + 1);
-        NEXT
-      }
-      case OPC_VRT: {
-        (op->args->data.fnc)(vm);
-        NEXT;
-      }
-      case OPC_CALL: {
-        push_val(vm, vm->sp);
-        push_val(vm, vm->bp);
-        push_val(vm, vm->ep);
-        read_arg(vm, op->args, &(vm->ep));
-        vm->bp = vm->sp;
-        vm->sp = 0;
-        break;
-      }
-      case OPC_RET: {
-        pop_val(vm, &(vm->ep));
-        pop_val(vm, &(vm->bp));
-        pop_val(vm, &(vm->sp));
-        NEXT;
-      }
-      case OPC_JMP: {
-        read_arg(vm, op->args, &(vm->ep));
-        NEXT;
-      }
-      case OPC_CMP: {
-        u64 a = 0;
-        u64 b = 0;
-        read_arg(vm, op->args + 0, &a);
-        read_arg(vm, op->args + 1, &b);
-        vm->cx = (a - b);
-        NEXT;
-      }
-      case OPC_JE: {
-        if (vm->cx == 0) {
-          read_arg(vm, op->args, &(vm->ep));
-        }
-        NEXT;
-      }
-      case OPC_JL: {
-        if (vm->cx < 0) {
-          read_arg(vm, op->args, &(vm->ep));
-        }
-        NEXT;
-      }
-      case OPC_JG: {
-        if (vm->cx > 0) {
-          read_arg(vm, op->args, &(vm->ep));
-        }
-        NEXT;
-      }
-      case OPC_ADD: {
-        u64 a = 0;
-        u64 b = 0;
-        read_arg(vm, op->args + 0, &a);
-        read_arg(vm, op->args + 1, &b);
-        copy_arg(vm, op->args, a + b);
-        NEXT;
-      }
-      case OPC_SUB: {
-        u64 a = 0;
-        u64 b = 0;
-        read_arg(vm, op->args + 0, &a);
-        read_arg(vm, op->args + 1, &b);
-        copy_arg(vm, op->args, a - b);
-        NEXT;
-      }
-      case OPC_INC: {
-        u64 a;
-        read_arg(vm, op->args, &a);
-        a += 1;
-        copy_arg(vm, op->args, a);
-        NEXT;
-      }
-      case OPC_DEC: {
-        u64 a;
-        read_arg(vm, op->args, &a);
-        a -= 1;
-        copy_arg(vm, op->args, a);
-        NEXT;
-      }
-      case OPC_SHL: {
-        u64 a;
-        u64 b;
-        read_arg(vm, op->args + 0, &a);
-        read_arg(vm, op->args + 1, &b);
-        copy_arg(vm, op->args, a << b);
-        NEXT;
-      }
-      case OPC_END: goto end;
+      #include "vm.inc"
     }
   }
 
@@ -179,175 +72,188 @@ VM_CALL void vm_exec (struct vm *vm, struct vm_op *ops)
   return;
 }
 
-VM_CALL bool vm_args (struct vm *vm, cstr fmt, ...)
+/**
+ * {@inheritdoc}
+ */
+VM_CALL bool vm_args (struct vm *vm, const char *fmt, ...)
 {
-  va_list args;
-  va_start(args, fmt);
-
-  for (; *fmt; fmt++) {
-    u64 val;
-    pop_val(vm, &val);
-    
-    switch (*fmt) {
-      case 'c':
-        *(va_arg(args, char*)) = (char) val;
-        break;
-    }
-  }
-
-  va_end(args);
   return true;
 }
 
-#define STK_CHECK_OVERFLOW(i) { \
-  if ((i) < VM_STK_MIN) {      \
-    puts("stack overflow!");    \
-    abort();                    \
-    return;                     \
-  }                             \
-}
+/* --------------------------------- */
 
-#define STK_CHECK_UNDERFLOW(i) { \
-  if ((i) > VM_STK_MAX) {       \
-    puts("stack underflow!");    \
-    abort();                     \
-    return;                      \
-  }                              \
-}
-
-static void push_arg (struct vm *vm, struct vm_arg *arg)
+static void stk_init (struct vm *vm, struct vm_stk *stk)
 {
-  u64 idx = vm->bp + vm->sp;
-  STK_CHECK_OVERFLOW(idx);
-  read_arg(vm, arg, (vm->stk + idx));
-  vm->sp -= 1;
+  stk->ep = 0;
+  stk->size = 0;
+  stk->buff = 0;
+  stk->argc = 0;
+  stk->argv = NULL;
+  stk->data = NULL;
+  stk->prev = NULL;
+  stk->next = NULL;
 }
 
-static void push_val (struct vm *vm, u64 val)
+static void stk_free (struct vm *vm, vm_stk *stk)
 {
-  u64 idx = vm->bp + vm->sp;
-  STK_CHECK_OVERFLOW(idx);
-  vm->stk[idx] = val;
-  vm->sp -= 1;
+  // noop
 }
 
-static void pop_arg (struct vm *vm, struct vm_arg *arg)
+/* --------------------------------- */
+
+static VM_INTR val_init (struct vm *vm, vm_val *val)
 {
-  u64 idx = vm->bp + vm->sp + 1;
-  STK_CHECK_UNDERFLOW(idx);
-  copy_arg(vm, arg, vm->stk[idx]);
-  vm->sp += 1;
+  memset(val, 0, sizeof(vm_val));
+  val->type = VAR_NIL;
 }
 
-static void pop_val (struct vm *vm, u64 *val)
+static VM_INTR val_free (struct vm *vm, vm_val *val)
 {
-  u64 idx = vm->bp + vm->sp + 1;
-  STK_CHECK_UNDERFLOW(idx);
-  *val = vm->stk[idx];
-  vm->sp += 1;
+  if (val->intr) {
+    /* value is interned */
+    return;
+  }
+
+  if (val->type == VAR_STR) {
+    free(val->data.str.data);
+  }
+
+  val_init(vm, val);
 }
 
-static void mov_arg (struct vm *vm, struct vm_arg *arg0, struct vm_arg *arg1)
+/* --------------------------------- */
+
+static VM_INTR call_arg (struct vm *vm, vm_arg *arg)
 {
-  u64 val = 0;
-  read_arg(vm, arg1, &val);
-  copy_arg(vm, arg0, val);
+  if (arg->data.val.type != VAR_FNC) {
+    puts("not a function");
+    abort();
+    return;
+  }
+
+  (arg->data.val.data.fnc)(vm);
 }
 
-static void read_arg (struct vm *vm, struct vm_arg *arg, u64 *val)
+/* --------------------------------- */
+
+static VM_INTR copy_arg (struct vm *vm, vm_arg *dst, vm_arg *src)
 {
-  switch (arg->type) {
+  vm_val *dst_val = 0;
+  vm_val *src_val = 0;
+
+  switch (src->type) {
     case OPT_REG:
-      switch (arg->data.reg) {
-        case REG_BP:
-          *val = vm->bp;
-          break;
-        case REG_EP:
-          *val = vm->ep;
-          break;
-        case REG_SP:
-          *val = vm->sp;
-          break;
+      /* read from register */
+      switch (src->data.reg) {
         case REG_R0:
-          *val = vm->r0;
+          src_val = &(vm->r0);
           break;
         case REG_R1:
-          *val = vm->r1;
+          src_val = &(vm->r1);
           break;
         default:
-          puts("unknown register requested");
-          abort();
-          break;
+          assert(0);
       }
       break;
-    case OPT_OFF: {
-      if (arg->data.reg != REG_SP) {
-        puts("not implemented");
-        abort();
-        break;
-      }
-      i64 off = arg->data.off.val;
-      *val = *(vm->stk + off);
-      break;
-    }
     case OPT_VAL:
-      *val = arg->data.val;
+      /* read from value */
+      src_val = &(src->data.val);
       break;
-    case OPT_PTR:
-      *val = *(u64*) arg->data.ptr;
-      break;
-    case OPT_FNC:
-      puts("cannot read function");
-      abort();
-      break;
+    default:
+      assert(0);
   }
-}
 
-static void copy_arg (struct vm *vm, struct vm_arg *arg, u64 val)
-{
-  switch (arg->type) {
+  switch (dst->type) {
     case OPT_REG:
-      switch (arg->data.reg) {
-        case REG_BP:
-          vm->bp = val;
-          break;
-        case REG_EP:
-          vm->ep = val;
-          break;
-        case REG_SP:
-          vm->sp = val;
-          break;
+      /* write to register */
+      switch (dst->data.reg) {
         case REG_R0:
-          vm->r0 = val;
+          dst_val = &(vm->r0);
           break;
         case REG_R1:
-          vm->r1 = val;
+          dst_val = &(vm->r1);
           break;
         default:
-          puts("unknown register");
-          abort();
-          break;
+          assert(0);
       }
       break;
-    case OPT_OFF: {
-      if (arg->data.reg != REG_SP) {
-        puts("not implemented");
-        abort();
-      }
-      i64 off = arg->data.off.val;
-      *(vm->stk + off) = val;
-      break;
-    }
     case OPT_VAL:
-      puts("cannot write to value");
-      abort();
+      /* write to value */
+      dst_val = &(dst->data.val);
       break;
-    case OPT_PTR:
-      *((u64*) arg->data.ptr) = val;
-      break;
-    case OPT_FNC:
-      puts("cannot write to function");
-      abort();
-      break;
+    default:
+      assert(0);
   }
+
+  if (dst_val == src_val) {
+    // read and write to same value
+    return;
+  }
+
+  copy_val(vm, dst_val, src_val);
+}
+
+static VM_INTR copy_num (struct vm *vm, vm_val *dst, vm_val *src)
+{
+  assert(src->type == VAR_NUM);
+  dst->type = VAR_NUM;
+  dst->data.num = src->data.num;
+}
+
+static VM_INTR copy_str (struct vm *vm, vm_val *dst, vm_val *src)
+{
+  assert(src->type == VAR_STR);
+
+  vm_str *ds = &(dst->data.str);
+  vm_str *ss = &(src->data.str);
+
+  ds->size = ss->size;
+  ds->buff = 0;
+  ds->data = malloc(ss->size);
+
+  if (!ds->data) {
+    puts("out of memory");
+    abort();
+    return;
+  }
+
+  memcpy(ds->data, ss->data,  ss->size);
+  dst->type = VAR_STR;
+}
+
+static VM_INTR copy_fnc (struct vm *vm, vm_val *dst, vm_val *src)
+{
+  assert(src->type == VAR_FNC);
+  dst->type = VAR_FNC;
+  dst->data.fnc = src->data.fnc;
+}
+
+static VM_INTR copy_val (struct vm *vm, vm_val *dst, vm_val *src)
+{
+  if (dst->intr) {
+    puts("write to read-only value");
+    abort();
+  }
+
+  /* clear destination */
+  val_free(vm, dst);
+
+  switch (src->type) {
+    case VAR_NUM:
+      copy_num(vm, dst, src);
+      break;
+    case VAR_STR:
+      copy_str(vm, dst, src);
+      break;
+    case VAR_FNC:
+      copy_fnc(vm, dst, src);
+      break;
+    case VAR_NIL:
+      break;
+    default:
+      assert(0);
+  }
+
+  /* clear source */
+  val_free(vm, src);
 }
