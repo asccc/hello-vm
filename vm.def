@@ -2,49 +2,43 @@ OP_HANDLER(NOP) {
   NEXT
 }
 
-OP_HANDLER(MOV, ANY|W, ANY|R) {
-  %copy_arg $0, $1
+OP_HANDLER(MOV, VAL_W, VAL_R) {
+  %copy_arg($0, $1);
   NEXT
 }
 
-OP_HANDLER(VRT, VAR_FNC) {
-  %call_arg $0
+OP_HANDLER(VRT, VAL_R) {
+  %call_arg($0);
   NEXT
 }
 
-OP_HANDLER(INC, VAR_NUM|RW) {
-  VAL_NUM($0)++;
+OP_HANDLER(INC, VAL_RW) {
+  %inc_arg($0);
   NEXT
 }
 
-OP_HANDLER(DEC, VAR_NUM|RW) {
-  VAL_NUM($0)--;
+OP_HANDLER(DEC, VAL_RW) {
+  %dec_arg($0);
   NEXT
 }
 
-OP_HANDLER(ADD, VAR_NUM|RW, VAR_NUM|R) {
-  VAL_NUM($0) += VAL_NUM($1);
+OP_HANDLER(ADD, VAL_RW, VAL_R) {
+  %add_arg($0, $1);
   NEXT
 }
 
-OP_HANDLER(SUB, VAR_NUM|RW, VAR_NUM|R) {
-  VAL_NUM($0) -= VAL_NUM($1);
+OP_HANDLER(SUB, VAL_RW, VAL_R) {
+  %sub_arg($0, $1);
   NEXT
 }
 
-OP_HANDLER(MUL, VAR_NUM|RW, VAR_NUM|R) {
-  VAL_NUM($0) *= VAL_NUM($1);
+OP_HANDLER(MUL, VAL_RW, VAL_R) {
+  %mul_arg($0, $1);
   NEXT
 }
 
-OP_HANDLER(DIV, VAR_NUM|RW, VAR_NUM|R) {
-  if (VAL_NUM($1) == 0) {
-    puts("division by zero");
-    abort();
-    break;
-  }
-  VAL_NUM($0) /= VAL_NUM($1);
-  NEXT
+OP_HANDLER(DIV, VAL_RW, VAL_R) {
+  %div_arg($0, $1);
 }
 
 OP_HANDLER(END) {

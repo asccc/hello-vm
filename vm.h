@@ -65,6 +65,8 @@ enum vm_var {
   VAR_FNC
 };
 
+#define VAL_VAR(v) (v)->type
+
 /**
  * represents a value
  */

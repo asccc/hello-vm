@@ -51,10 +51,10 @@ function main(): int
   }
 
   for (;;) {
-    $line = fgets($fp, 1024);
-    if ($line === false) {
+    if (($line = fgets($fp)) == false) {
       break;
     }
+
     $line = trim($line);
 
     switch ($st) {
