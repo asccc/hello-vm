@@ -1,67 +1,73 @@
 #include "vm.h"
+#include "fn.h"
+
+#define OP0(O) {     \
+  .code = OPC_ ## O, \
+  .argc = 0          \
+}
+
+#define OP1(O,L) {   \
+  .code = OPC_ ## O, \
+  .argc = 1,         \
+  .args = {L}        \
+}
+
+#define OP2(O,L,R) { \
+  .code = OPC_ ## O, \
+  .argc = 2,         \
+  .args = {L,R}      \
+}
+
+#define VAR(N) {   \
+  .type = OPT_VAR, \
+  .data.str = #N   \
+}
+
+#define TID(T) {   \
+  .type = OPT_TID, \
+  .data.tid = T    \
+}
+
+#define SYM(S) {         \
+  .type = OPT_SYM,       \
+  .data.sym = VM_NAME(S) \
+}
+
+#define STR(S) {   \
+  .type = OPT_STR, \
+  .data.str = S    \
+}
 
 #include <stdio.h>
 
-#define OP0(OP) { .kind = OPC_ ## OP, .argc = 0, .args = {0} }
-#define OP1(OP, A1) { .kind = OPC_ ## OP, .argc = 1, .args[0] = A1 }
-#define OP2(OP, A1, A2) { .kind = OPC_ ## OP, .argc = 2, .args = {A1, A2} }
-
-#define REG(ID) {        \
-  .type = OPT_REG,       \
-  .data.reg = REG_ ## ID \
-}
-
-#define NUM(VL) {           \
-  .type = OPT_VAL,          \
-  .data.val.type = VAR_NUM, \
-  .data.val.intr = true,    \
-  .data.val.data.num = VL   \
-}
-
-#define FNC(FN) {                  \
-  .type = OPT_VAL,                 \
-  .data.val.type = VAR_FNC,        \
-  .data.val.intr = true,           \
-  .data.val.data.fnc = VM_NAME(FN) \
-}
-
-#define STR(CA) {                       \
-  .type = OPT_VAL,                      \
-  .data.val.type = VAR_STR,             \
-  .data.val.intr = true,                \
-  .data.val.data.str.data = CA,         \
-  .data.val.data.str.size = sizeof(CA), \
-  .data.val.data.str.buff = 0           \
-}
-
-VM_FUNC(echo_r0) 
-{
-  char *str_r0 = VAL_STR(&vm->r0);
-  char *str_r1 = VAL_STR(&vm->r1);
-  if (str_r0 == 0) {
-    puts("R0 is null");
-  } else {
-    puts(str_r0);
-  }
-  if (str_r1 == 0) {
-    puts("R1 is null");
-  } else {
-    puts(str_r1);
-  }
-}
-
 int main (void)
 {
+  struct tab tab;
+  tab_init(&tab);
+
+  tab_put(&tab, "a", "hello", sizeof("hello"));
+  tab_put(&tab, "b", "world", sizeof("world"));
+  
+  puts(tab_get(&tab, "a"));
+  puts(tab_get(&tab, "b"));
+
+  tab_free(&tab);
+
+  #if 0
   struct vm vm;
   vm_init(&vm);
 
   struct vm_op ops[] = {
-    OP2(MOV, REG(R0), STR("hello, world!")),
-    OP2(MOV, REG(R1), REG(R0)),
-    OP1(VRT, FNC(echo_r0)),
+    OP2(VAL, VAR(msg),  TID(VAR_STR)),
+    OP2(SET, VAR(msg),  STR("hello world")),
+    OP2(INI, SYM(puts), TID(VAR_NIL)),
+    OP1(SND, VAR(msg)),
+    OP0(EXC),
+    OP1(DEL, VAR(msg)),
     OP0(END)
   };
 
   vm_exec(&vm, ops); 
+  #endif
   return 0;
 }

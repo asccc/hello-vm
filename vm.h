@@ -1,40 +1,31 @@
 #pragma once
 
 #include "def.h"
+#include "tab.h"
 
 #include <stdbool.h>
 
 #define VM_NAME(ID) vm_sym__ ## ID
-
 #define VM_CALL __attribute__((nonnull))
-  
 #define VM_INTR VM_CALL void
-
 #define VM_FUNC(ID)                  \
   __attribute__((noinline, nonnull)) \
   void VM_NAME(ID) (struct vm *vm)
 
 struct vm;
-
-/**
- * represents a register slot
- */
-enum vm_reg {
-  REG_R0 = 0,
-  REG_R1
-};
+typedef void(*vm_sym)(struct vm*);
 
 /**
  * vm opcodes 
  */
 enum vm_opc {
   OPC_NOP = 0,
-  // OPC_PUSH,
-  // OPC_POP,
-  OPC_MOV,
-  OPC_VRT,
-  // OPC_JMP,
-  // OPC_CMP,
+  OPC_VAL,
+  OPC_SET,
+  OPC_INI,
+  OPC_SND,
+  OPC_EXC,
+  OPC_DEL,
   OPC_END
 };
 
@@ -42,17 +33,10 @@ enum vm_opc {
  * vm opcode payload kind 
  */
 enum vm_opt {
-  OPT_REG = 0,
-  OPT_VAL,
-};
-
-/**
- * represents a string 
- */
-struct vm_str {
-  char *data;
-  u32 size;
-  u32 buff;
+  OPT_NUM = 0,
+  OPT_STR,
+  OPT_TID,
+  OPT_SYM
 };
 
 /**
@@ -62,27 +46,21 @@ enum vm_var {
   VAR_NIL = 0,
   VAR_NUM,
   VAR_STR,
-  VAR_FNC
+  VAR_SYM
 };
-
-#define VAL_VAR(v) (v)->type
 
 /**
  * represents a value
  */
 struct vm_val {
   enum vm_var type;
-  bool intr;
+  bool mngd;
   union {
     i64 num;
-    struct vm_str str;
-    void(*fnc)(struct vm*);
+    char *str;
+    vm_sym sym;
   } data;
 };
-
-#define VAL_NUM(v) (v)->data.num
-#define VAL_STR(v) (v)->data.str.data
-#define VAL_FNC(v) (v)->data.fnc
 
 /**
  * represents a opcode argument
@@ -90,8 +68,10 @@ struct vm_val {
 struct vm_arg {
   enum vm_opt type;
   union {
-    struct vm_val val;
-    enum vm_reg reg;
+    char *str;
+    enum vm_var tid;
+    vm_sym sym;
+    i64 num;
   } data;
 };
 
@@ -99,7 +79,7 @@ struct vm_arg {
  * represents a full opcode instruction
  */
 struct vm_op {
-  enum vm_opc kind;
+  enum vm_opc code;
   u32 argc;
   struct vm_arg args[2];
 };
@@ -123,10 +103,7 @@ struct vm_stk {
  */
 struct vm {
   szt ep;
-  struct vm_val r0;
-  struct vm_val r1;
-  struct vm_stk bp;
-  struct vm_stk *sp;
+  struct vm_stk stk;
 };
 
 /**
@@ -134,7 +111,7 @@ struct vm {
  * 
  * @param  the virtual machine struct
  */
-VM_CALL void vm_init (struct vm *);
+extern VM_CALL void vm_init (struct vm *);
 
 /**
  * virtual machine executor
@@ -142,7 +119,7 @@ VM_CALL void vm_init (struct vm *);
  * @param  the virtual machine struct
  * @param  the opcodes to execute
  */
-VM_CALL void vm_exec (struct vm *, struct vm_op *);
+extern VM_CALL void vm_exec (struct vm *, struct vm_op *);
 
 /**
  * fetches arguments from the current stack-frame
@@ -152,4 +129,4 @@ VM_CALL void vm_exec (struct vm *, struct vm_op *);
  * @param ... storage variables
  * @return true on success, false on failure
  */
-VM_CALL bool vm_args (struct vm *, const char *, ...);
+extern VM_CALL bool vm_args (struct vm *, const char *, ...);

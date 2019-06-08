@@ -1,6 +1,6 @@
 CC=$(shell which cc)
 CCFLAGS=-std=gnu11 -Wall -Werror -Wno-missing-braces \
-	-Wno-unused-function -pedantic
+	-Wno-unused-function -pedantic -g
 
 LDFLAGS=-lm
 

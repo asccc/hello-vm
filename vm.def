@@ -1,46 +1,37 @@
-OP_HANDLER(NOP) {
+NOP {
   NEXT
 }
 
-OP_HANDLER(MOV, VAL_W, VAL_R) {
-  %copy_arg($0, $1);
+VAR (NAME, TYPE) {
+  %var_init($0, $1);
   NEXT
 }
 
-OP_HANDLER(VRT, VAL_R) {
-  %call_arg($0);
+SET (NAME, VALUE) {
+  %var_setv($0, $1);
   NEXT
 }
 
-OP_HANDLER(INC, VAL_RW) {
-  %inc_arg($0);
+INIT (ID|NAME, TYPE) {
+  %fnc_init($0, $1);
   NEXT
 }
 
-OP_HANDLER(DEC, VAL_RW) {
-  %dec_arg($0);
+SEND (NAME|VALUE) {
+  %fnc_send($1);
   NEXT
 }
 
-OP_HANDLER(ADD, VAL_RW, VAL_R) {
-  %add_arg($0, $1);
+EXEC {
+  %fnc_call();
   NEXT
 }
 
-OP_HANDLER(SUB, VAL_RW, VAL_R) {
-  %sub_arg($0, $1);
+DEL (NAME) {
+  %var_free($0);
   NEXT
 }
 
-OP_HANDLER(MUL, VAL_RW, VAL_R) {
-  %mul_arg($0, $1);
-  NEXT
-}
-
-OP_HANDLER(DIV, VAL_RW, VAL_R) {
-  %div_arg($0, $1);
-}
-
-OP_HANDLER(END) {
+END {
   HALT
 }
