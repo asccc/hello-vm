@@ -380,6 +380,8 @@ static void exec_inv (struct vm *vm)
     }
   }
 
+  mem_free(inv->retv);
+  mem_free(inv->argv);
   mem_free(inv);
   vm->inv = 0;
 }
