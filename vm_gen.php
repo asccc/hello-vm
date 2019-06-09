@@ -16,8 +16,6 @@ const RE_CASE = '/^
   \{\s*
 $/x';
 
-const RE_FNC0 = '/\b_(\w+)\(\s*\)/';
-const RE_FNCN = '/\b_(\w+)\(\s*(?!\))/';
 const RE_ARGN = '/\b_(\d+)\b/';
 
 function gen_vm(string $src, string $dst)
@@ -74,8 +72,6 @@ function gen_vm(string $src, string $dst)
       continue;
     }
 
-    $line = preg_replace(RE_FNC0, '$1(vm)', $line);
-    $line = preg_replace(RE_FNCN, '$1(vm, ', $line);
     $line = preg_replace(RE_ARGN, '(op->argv + $1)', $line);
     $line = preg_replace(
       ['/\bHALT\b/', '/\bNEXT\b/'],

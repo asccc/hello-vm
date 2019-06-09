@@ -19,15 +19,15 @@ OPCODE(NOP) {
 
 OPCODE(VAR, VID) {
   struct vm_val *val;
-  val = _stk_read(_0->data.vid);
-  _val_init(val);
+  val = stk_read(vm, _0->data.vid);
+  val_init(vm, val);
   NEXT
 }
 
 OPCODE(SET, VID, NUM|STR|SYM) {
   struct vm_val *val;
-  val = _stk_read(_0->data.vid);
-  _val_free(val);
+  val = stk_read(vm, _0->data.vid);
+  val_free(vm, val);
   switch (_1->type) {
     case OPT_NUM:
       val->type = VAR_NUM;
@@ -52,7 +52,7 @@ OPCODE(INI, SYM|VID, TID) {
   switch (_0->type) {
     case OPT_VID: {
       struct vm_val *val;
-      val = _stk_read(_0->data.vid);
+      val = stk_read(vm, _0->data.vid);
       if (val->type != VAR_SYM) {
         puts("type error: symbol value expected");
         HALT
@@ -66,19 +66,18 @@ OPCODE(INI, SYM|VID, TID) {
     default:
       HALT
   }
-  _inv_make(sym);
+  inv_make(vm, sym);
   NEXT
 }
 
 OPCODE(SND, VID|NUM|SYM|STR) {
   struct vm_val *val;
   if (_0->type == OPT_VID) {
-    val = _stk_read(_0->data.vid);
-    _inv_send(val);
+    val = stk_read(vm, _0->data.vid);
+    inv_send(vm, val);
     NEXT
   }
-  val = _val_make();
-  val->temp = true;
+  val = val_temp(vm);
   switch (_0->type) {
     case OPT_NUM: 
       val->type = VAR_NUM;
@@ -95,19 +94,20 @@ OPCODE(SND, VID|NUM|SYM|STR) {
     default:
       HALT
   }
-  _inv_send(val);
+  inv_send(vm, val);
   NEXT
 }
 
 OPCODE(EXC) {
-  _inv_call();
+  inv_call(vm);
+  inv_free(vm);
   NEXT
 }
 
 OPCODE(DEL, VID) {
   struct vm_val *val;
-  val = _stk_read(_0->data.vid);
-  _val_free(val);
+  val = stk_read(vm, _0->data.vid);
+  val_free(vm, val);
   NEXT
 }
 

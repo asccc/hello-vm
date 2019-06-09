@@ -31,8 +31,6 @@ VM_CALL void vm_init (struct vm *vm)
   vm->ep = 0;
 }
 
-#define NEXT vm->ep++; break;
-
 /**
  * {@inheritdoc}
  */

@@ -88,8 +88,7 @@ case OPC_SND: {
     inv_send(vm, val);
     vm->ep++; break;
   }
-  val = val_make(vm);
-  val->temp = true;
+  val = val_temp(vm);
   switch ((op->argv + 0)->type) {
     case OPT_NUM: 
       val->type = VAR_NUM;
@@ -113,6 +112,7 @@ case OPC_SND: {
 case OPC_EXC: {
   assert(op->argc == 0);
   inv_call(vm);
+  inv_free(vm);
   vm->ep++; break;
 }
 
