@@ -16,19 +16,18 @@ Aktuell sind folgende Werte möglich:
 - NUM = 64bit Ganzzahl mit Vorzeichen
 - STR = eine Zeichenkette
 - NIL = kein Wert
-- FNC = Ein Funktionszeiger
+- SYM = Ein Funktionszeiger
 
 ## Register
 
-Die virtuelle Maschine besitzt 2 Register für temporäre Werte.
-
-R0 und R1
-
-Zudem existieren noch EP (execution pointer) und SP (stack pointer).
+TBD
 
 ## Stack und Stack-Frames
 
-TBD
+Ein Stack wird für das Speichern und Auslesen von Werten genutzt.
+
+Bevor Werte abgelegt werden können, muss zuvor mittels dem STK Opcode 
+Speicher reserviert werden.
 
 ## Opcodes
 
@@ -36,15 +35,41 @@ TBD
 
 Erhöht den EP und macht sonst nichts weiter.
 
-### MOV dst, src
+### STK num
 
-Kopiert den Inhalt aus `src` nach `dst`.
-Sollte `dst` bereits einen Wert haben (nicht NIL), wird dieser bereinigt.
+Initialisiert einen neuen Stack mit `num` möglichen Werten.
 
-### VRT sym
+### SET vid, num|str|sym
 
-Ruft eine für die virtuelle Maschine exportierte Funktion auf.
+Speichert den übergebenen Wert in der Variable `vid`.
+
+### INI sym|vid, num
+
+Initialisiert einen Funktionsaufruf mit `num` Argumenten.
+
+### SND vid|num|sym|str
+
+Sendet einen Wert an den Funktionsaufruf.
+
+### EXC
+
+Führt den Funktionsaufruf aus.
+
+### DEL vid
+
+Löscht den Wert der Variable `vid`
 
 ### END
 
 Beendet die Ausführung.
+
+## Beispiel hello-world
+
+```
+STK   1                 ; 1 Variable auf dem Stack reservieren
+SET   0, "hallo welt"   ; "hallo welt" in Variable 0 speichern
+INI   puts, 1           ; Funktionsaufruf zu "putc" mit 1 Argument initialisieren
+SND   0                 ; Variable 0 an Funktion übergeben
+EXC                     ; Funktion aufrufen
+END                     ; Program beenden
+```
