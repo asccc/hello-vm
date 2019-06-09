@@ -17,100 +17,41 @@ OPCODE(NOP) {
   NEXT
 }
 
-OPCODE(VAR, VID) {
-  struct vm_val *val;
-  val = stk_read(vm, _0->data.vid);
-  val_init(vm, val);
+OPCODE(STK, NUM) {
+  init_stk(vm, _0->data.num);
   NEXT
 }
 
 OPCODE(SET, VID, NUM|STR|SYM) {
-  struct vm_val *val;
-  val = stk_read(vm, _0->data.vid);
-  val_free(vm, val);
-  switch (_1->type) {
-    case OPT_NUM:
-      val->type = VAR_NUM;
-      val->data.num = _1->data.num;
-      break;
-    case OPT_STR:
-      val->type = VAR_STR;
-      val->data.str = mem_sdup(_1->data.str);
-      break;
-    case OPT_SYM:
-      val->type = VAR_SYM;
-      val->data.sym = _1->data.sym;
-      break;
-    default:
-      HALT
-  }
+  updt_var(vm, _0->data.vid, _1);
   NEXT
 }
 
-OPCODE(INI, SYM|VID, TID) {
-  vm_sym sym;
-  switch (_0->type) {
-    case OPT_VID: {
-      struct vm_val *val;
-      val = stk_read(vm, _0->data.vid);
-      if (val->type != VAR_SYM) {
-        puts("type error: symbol value expected");
-        HALT
-      }
-      sym = val->data.sym;
-      break;
-    }
-    case OPT_SYM:
-      sym = _0->data.sym;
-      break;
-    default:
-      HALT
-  }
-  inv_make(vm, sym);
+OPCODE(INI, SYM|VID, NUM) {
+  init_inv(vm, _0, _1->data.num);
   NEXT
 }
 
 OPCODE(SND, VID|NUM|SYM|STR) {
-  struct vm_val *val;
   if (_0->type == OPT_VID) {
-    val = stk_read(vm, _0->data.vid);
-    inv_send(vm, val);
+    send_var(vm, _0->data.vid);
     NEXT
   }
-  val = val_temp(vm);
-  switch (_0->type) {
-    case OPT_NUM: 
-      val->type = VAR_NUM;
-      val->data.num = _0->data.num;
-      break;
-    case OPT_STR:
-      val->type = VAR_STR;
-      val->data.str = mem_sdup(_0->data.str);
-      break;
-    case OPT_SYM:
-      val->type = VAR_SYM;
-      val->data.sym = _0->data.sym;
-      break;
-    default:
-      HALT
-  }
-  inv_send(vm, val);
+  send_val(vm, _0);
   NEXT
 }
 
 OPCODE(EXC) {
-  inv_call(vm);
-  inv_free(vm);
+  exec_inv(vm);
   NEXT
 }
 
 OPCODE(DEL, VID) {
-  struct vm_val *val;
-  val = stk_read(vm, _0->data.vid);
-  val_free(vm, val);
+  free_var(vm, _0->data.vid);
   NEXT
 }
 
 OPCODE(END) {
+  free_stk(vm);
   HALT
 }

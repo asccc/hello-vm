@@ -20,7 +20,7 @@ typedef void(*vm_sym)(struct vm*);
  */
 enum vm_opc {
   OPC_NOP = 0,
-  OPC_VAR,
+  OPC_STK,
   OPC_SET,
   OPC_INI,
   OPC_SND,
@@ -93,7 +93,6 @@ struct vm_stk {
   szt size;
   struct vm_val **data;
   struct vm_stk *prev;
-  struct vm_stk *next;
 };
 
 /**
@@ -102,6 +101,7 @@ struct vm_stk {
 struct vm_inv {
   vm_sym sym;
   u32 argc;
+  u32 indx;
   struct vm_val **argv;
   struct vm_val *retv;
 };

@@ -24,7 +24,7 @@ void * mem_aodt (szt size)
  */
 char * mem_sdup (const char *str)
 {
-  #ifdef STRICT_ANSI
+  #ifdef __STRICT_ANSI__
     size_t len = strlen(str);
     void *mem = mem_aodt(len + 1);
     return memcpy(mem, str, len);

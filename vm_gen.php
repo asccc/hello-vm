@@ -23,7 +23,8 @@ function gen_vm(string $src, string $dst)
   $out = fopen($dst, 'w+');
 
   foreach (file($src) as $line) {
-    if (substr($line, 0, 1) === '#' ||
+    if (ctype_space($line) ||
+        substr($line, 0, 1) === '#' ||
         substr($line, 0, 2) == '//' ||
         substr($line, 0, 6) === 'extern') {
       continue;
@@ -39,13 +40,13 @@ function gen_vm(string $src, string $dst)
         $args = preg_split('/\s*,\s*/', $args);
         $argc = count($args);
 
-        $case .= "  assert(op->argc == {$argc});\n";
+        $case .= "  test_argc(\"{$code}\", op->argc == {$argc});\n";
 
         foreach ($args as $off => $arg) {
           $hint = preg_split('/\s*\|\s*/', $arg);
           
           $argt = "(op->argv + {$off})->type";
-          $case .= "  assert(";
+          $case .= "  test_argv(\"{$code}\", {$off}, ";
           $frst = true;
           $abrk = count($hint) > 1;
 
@@ -60,7 +61,7 @@ function gen_vm(string $src, string $dst)
           $case .= ");\n";
         }
       } else {
-        $case .= "  assert(op->argc == 0);\n";
+        $case .= "  test_argc(\"{$code}\", op->argc == 0);\n";
       }
 
       fputs($out, $case);

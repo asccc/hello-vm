@@ -8,16 +8,12 @@ int main (void)
 
   struct vm_op ops[] = {
     { 
-      .code = OPC_VAL, 
-      .argc = 2, 
+      .code = OPC_STK, 
+      .argc = 1, 
       .argv = {
         {
-          .type = OPT_VID,
-          .data.vid = 0
-        },
-        {
-          .type = OPT_TID,
-          .data.tid = VAR_STR
+          .type = OPT_NUM,
+          .data.num = 1
         }
       } 
     }, {
@@ -41,8 +37,8 @@ int main (void)
           .data.sym = VM_NAME(puts)
         },
         {
-          .type = OPT_TID,
-          .data.tid = VAR_NIL
+          .type = OPT_NUM,
+          .data.num = 1
         }
       }
     }, {

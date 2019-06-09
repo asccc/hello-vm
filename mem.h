@@ -8,15 +8,15 @@
  * @param the number of bytes to allocate
  * @return the allocated memory
  */
-extern void * mem_aodt (szt);
+extern void * mem_aodt (szt) __attribute__((malloc));
 
 /**
- * creates a copy from the given string
+ * creates a copy of the given string
  * 
  * @param the string to copy
  * @return the copied string
  */
-extern char * mem_sdup (const char *);
+extern char * mem_sdup (const char *) __attribute__((malloc));
 
 /**
  * grow/shrink the given memory pointer
@@ -24,7 +24,7 @@ extern char * mem_sdup (const char *);
  * @param a pointer to the memory location
  * @param the new size
  */
-extern void * mem_grow (void *, szt);
+extern void * mem_grow (void *, szt) __attribute__((malloc));
 #define mem_srnk(m,s) mem_grow(m, s)
 
 /**
