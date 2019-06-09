@@ -20,7 +20,7 @@ typedef void(*vm_sym)(struct vm*);
  */
 enum vm_opc {
   OPC_NOP = 0,
-  OPC_VAL,
+  OPC_VAR,
   OPC_SET,
   OPC_INI,
   OPC_SND,
@@ -34,6 +34,7 @@ enum vm_opc {
  */
 enum vm_opt {
   OPT_NUM = 0,
+  OPT_VID,
   OPT_STR,
   OPT_TID,
   OPT_SYM
@@ -54,7 +55,7 @@ enum vm_var {
  */
 struct vm_val {
   enum vm_var type;
-  bool mngd;
+  bool temp;
   union {
     i64 num;
     char *str;
@@ -68,6 +69,7 @@ struct vm_val {
 struct vm_arg {
   enum vm_opt type;
   union {
+    u32 vid;
     char *str;
     enum vm_var tid;
     vm_sym sym;
@@ -81,21 +83,27 @@ struct vm_arg {
 struct vm_op {
   enum vm_opc code;
   u32 argc;
-  struct vm_arg args[2];
+  struct vm_arg argv[2];
 };
 
 /**
- * represents a stack frame
+ * represents a stack
  */
 struct vm_stk {
-  szt ep;
   szt size;
-  szt buff;
-  u32 argc;
-  struct vm_val *argv;
-  struct vm_val *data;
+  struct vm_val **data;
   struct vm_stk *prev;
   struct vm_stk *next;
+};
+
+/**
+ * represents a invocation
+ */
+struct vm_inv {
+  vm_sym sym;
+  u32 argc;
+  struct vm_val **argv;
+  struct vm_val *retv;
 };
 
 /**
@@ -103,7 +111,8 @@ struct vm_stk {
  */
 struct vm {
   szt ep;
-  struct vm_stk stk;
+  struct vm_stk *stk;
+  struct vm_inv *inv;
 };
 
 /**

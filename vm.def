@@ -1,37 +1,116 @@
-NOP {
+// this stuff is used to make vscode happy!
+// include, define and extern gets removed
+// during vm-generation (see vm_gen.php).
+
+#include "vm.h"
+#include <assert.h>
+#define NEXT return;
+#define HALT return;
+#define OPCODE(A, ...) void dummy__ ## A ()
+extern struct vm *vm;
+extern struct vm_arg *_0;
+extern struct vm_arg *_1;
+
+// actual code starts here:
+
+OPCODE(NOP) {
   NEXT
 }
 
-VAR (NAME, TYPE) {
-  %var_init($0, $1);
+OPCODE(VAR, VID) {
+  struct vm_val *val;
+  val = _stk_read(_0->data.vid);
+  _val_init(val);
   NEXT
 }
 
-SET (NAME, VALUE) {
-  %var_setv($0, $1);
+OPCODE(SET, VID, NUM|STR|SYM) {
+  struct vm_val *val;
+  val = _stk_read(_0->data.vid);
+  _val_free(val);
+  switch (_1->type) {
+    case OPT_NUM:
+      val->type = VAR_NUM;
+      val->data.num = _1->data.num;
+      break;
+    case OPT_STR:
+      val->type = VAR_STR;
+      val->data.str = mem_sdup(_1->data.str);
+      break;
+    case OPT_SYM:
+      val->type = VAR_SYM;
+      val->data.sym = _1->data.sym;
+      break;
+    default:
+      HALT
+  }
   NEXT
 }
 
-INIT (ID|NAME, TYPE) {
-  %fnc_init($0, $1);
+OPCODE(INI, SYM|VID, TID) {
+  vm_sym sym;
+  switch (_0->type) {
+    case OPT_VID: {
+      struct vm_val *val;
+      val = _stk_read(_0->data.vid);
+      if (val->type != VAR_SYM) {
+        puts("type error: symbol value expected");
+        HALT
+      }
+      sym = val->data.sym;
+      break;
+    }
+    case OPT_SYM:
+      sym = _0->data.sym;
+      break;
+    default:
+      HALT
+  }
+  _inv_make(sym);
   NEXT
 }
 
-SEND (NAME|VALUE) {
-  %fnc_send($1);
+OPCODE(SND, VID|NUM|SYM|STR) {
+  struct vm_val *val;
+  if (_0->type == OPT_VID) {
+    val = _stk_read(_0->data.vid);
+    _inv_send(val);
+    NEXT
+  }
+  val = _val_make();
+  val->temp = true;
+  switch (_0->type) {
+    case OPT_NUM: 
+      val->type = VAR_NUM;
+      val->data.num = _0->data.num;
+      break;
+    case OPT_STR:
+      val->type = VAR_STR;
+      val->data.str = mem_sdup(_0->data.str);
+      break;
+    case OPT_SYM:
+      val->type = VAR_SYM;
+      val->data.sym = _0->data.sym;
+      break;
+    default:
+      HALT
+  }
+  _inv_send(val);
   NEXT
 }
 
-EXEC {
-  %fnc_call();
+OPCODE(EXC) {
+  _inv_call();
   NEXT
 }
 
-DEL (NAME) {
-  %var_free($0);
+OPCODE(DEL, VID) {
+  struct vm_val *val;
+  val = _stk_read(_0->data.vid);
+  _val_free(val);
   NEXT
 }
 
-END {
+OPCODE(END) {
   HALT
 }

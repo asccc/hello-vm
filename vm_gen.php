@@ -4,198 +4,90 @@
 declare(strict_types=1);
 namespace HelloVM;
 
-const DEF = __DIR__ . '/vm.def';
-const OUT = __DIR__ . '/vm.inc';
+const RE_CASE = '/^
+  OPCODE\s*\(
+  (?<code>\w+)\s*
+  (?:
+    ,\s*(?<args>
+      (\w+(?:\s*\|\s*\w+)*)
+      (?:\s*,\s*(?3))*
+    )*
+  )?\s*\)\s*
+  \{\s*
+$/x';
 
-assert_options(ASSERT_ACTIVE, true); 
-assert_options(ASSERT_BAIL, true);
+const RE_FNC0 = '/\b_(\w+)\(\s*\)/';
+const RE_FNCN = '/\b_(\w+)\(\s*(?!\))/';
+const RE_ARGN = '/\b_(\d+)\b/';
 
-class OpCode
+function gen_vm(string $src, string $dst)
 {
-  public $name;
-  public $argc;
-  public $body;
+  $out = fopen($dst, 'w+');
 
-  public function __construct(string $name, int $argc)
-  {
-    $this->name = $name;
-    $this->argc = $argc;
-    $this->body = [];
-  }
-
-  public function add(string $line)
-  {
-    $this->body[] = $line;
-  }
-}
-
-const ST_HEAD = 0;
-const ST_BODY = 1;
-
-const RE_HEAD = '/^(\w+)\s*#(\d+)\s*\(\s*$/';
-const RE_FUNC = '/^%(\w+)((?:\s+[$>]\d+)*)\s*$/';
-const RE_INST = '/^\\/(\w+)$/';
-
-exit(main());
-
-function main(): int
-{
-  $fp = fopen(DEF, 'r');
-  $st = ST_HEAD;
-  $vm = [];
-  $op = null;
-
-  if (!$fp) {
-    error_log("could not open vm-definition file\n");
-    return 1;
-  }
-
-  for (;;) {
-    if (($line = fgets($fp)) == false) {
-      break;
+  foreach (file($src) as $line) {
+    if (substr($line, 0, 1) === '#' ||
+        substr($line, 0, 2) == '//' ||
+        substr($line, 0, 6) === 'extern') {
+      continue;
     }
 
-    $line = trim($line);
+    if (preg_match(RE_CASE, $line, $m)) {
+      $code = $m['code'];
+      $args = $m['args'] ?? null;
 
-    switch ($st) {
-      case ST_HEAD:
-        if (!preg_match(RE_HEAD, $line, $m)) {
-          error_log('syntax error near: ' . $line);
-          goto err;
+      $case = "case OPC_{$code}: {\n";
+      
+      if (!empty($args)) {
+        $args = preg_split('/\s*,\s*/', $args);
+        $argc = count($args);
+
+        $case .= "  assert(op->argc == {$argc});\n";
+
+        foreach ($args as $off => $arg) {
+          $hint = preg_split('/\s*\|\s*/', $arg);
+          
+          $argt = "(op->argv + {$off})->type";
+          $case .= "  assert(";
+          $frst = true;
+          $abrk = count($hint) > 1;
+
+          foreach ($hint as $type) {
+            if (!$frst) $case .= ' || ';
+            if ($abrk) $case .= "\n    ";
+            $frst = false;
+            $case .= "{$argt} == OPT_{$type}";
+          }
+
+          if ($abrk) $case .= "\n  ";
+          $case .= ");\n";
         }
-        $op = new OpCode($m[1], (int)($m[2]));
-        $st = ST_BODY;
-        break;
-
-      case ST_BODY:
-        switch (substr($line, 0, 1)) {
-          case '%': 
-            $it = gen_fnc($line);
-            break;
-
-          case '/':
-            $it = gen_sym($line);
-            break;
-
-          case ')':
-            $vm[] = $op;
-            $st = ST_HEAD;
-            break 2;
-
-          default:
-            error_log('syntax error near: ' . $line);
-            goto err;
-        }
-        foreach ($it as $ln) {
-          $op->add($ln);
-        }
-        break;
-
-      default:
-        error_log('invalid state');
-        goto err;
-    }
-  }
-
-  fclose($fp);
-  return wrt_out($vm);
-
-  err:
-  fclose($fp);
-  return 1;
-}
-
-function gen_fnc(string $line)
-{
-  $ins = '';
-  $tmp = [];
-
-  if (!preg_match(RE_FUNC, $line, $m)) {
-    error_log('invalid syntax near: ' . $line);
-    yield null;
-    return;
-  }
-
-  [, $fnc, $prm] = $m;
-  $prm = trim($prm);
-
-  if (!empty($prm)) {
-    foreach (preg_split('/\s+/', $prm) as $arg) {
-      $num = substr($arg, 1);
-      switch (substr($arg, 0, 1)) {
-        case '$':
-          $ins .= ', op->args + ' . $num;
-          break;
-        case '>':
-          $tmp[] = $num;
-          $ins .= ', &t' . $num;
-          break;
-        default:
-          assert(0);
+      } else {
+        $case .= "  assert(op->argc == 0);\n";
       }
+
+      fputs($out, $case);
+      continue;
     }
-  }
 
-  if (!empty($tmp)) {
-    foreach ($tmp as $num) {
-      yield "struct vm_val t{$num} = {0};";
+    if ($line === '}') {
+      fputs($out, "}");
+      continue;
     }
-  }
 
-  yield "$fnc(vm$ins);";
-}
+    $line = preg_replace(RE_FNC0, '$1(vm)', $line);
+    $line = preg_replace(RE_FNCN, '$1(vm, ', $line);
+    $line = preg_replace(RE_ARGN, '(op->argv + $1)', $line);
+    $line = preg_replace(
+      ['/\bHALT\b/', '/\bNEXT\b/'],
+      ['goto end;', 'vm->ep++; break;'],
+      $line
+    );
 
-function gen_sym(string $line)
-{
-  if (!preg_match(RE_INST, $line, $m)) {
-    error_log('syntax error near: ' . $line);
-    yield null;
-    return;
-  }
-
-  [, $ins] = $m;
-
-  switch ($ins) {
-    case 'next':
-      yield 'vm->ep++;';
-      yield 'break;';
-      break;
-    case 'skip':
-      yield 'break;';
-      break;
-    case 'halt':
-      yield 'goto end;';
-      break;
+    fputs($out, "$line");
   }
 }
 
-function wrt_out(array $ops) 
-{
-  $fp = fopen(OUT, 'w+');
-  if (!$fp) {
-    error_log('could not open output file');
-    return 1;
-  }
-
-  foreach ($ops as $op) {
-    fputs($fp, 'case OPC_');
-    fputs($fp, strtoupper($op->name));
-    fputs($fp, ": {\n");
-    fputs($fp, '  puts("');
-    fputs($fp, strtoupper($op->name));
-    fputs($fp, '");');
-    fputs($fp, "\n");
-    fputs($fp, '  if (op->argc != ');
-    fputs($fp, (string) $op->argc);
-    fputs($fp, ") {\n");
-    fputs($fp, '    puts("invalid number of arguments");');
-    fputs($fp, "\n    abort();\n    break;\n  }\n");
-    foreach ($op->body as $line) {
-      fputs($fp, "  $line\n");
-    }
-    fputs($fp, "}\n");
-  }
-
-  fclose($fp);
-  return 0;
-}
+gen_vm(
+  __dir__ . '/vm.def',
+  __dir__ . '/vm.inc'
+);

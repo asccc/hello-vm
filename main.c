@@ -1,73 +1,77 @@
 #include "vm.h"
 #include "fn.h"
 
-#define OP0(O) {     \
-  .code = OPC_ ## O, \
-  .argc = 0          \
-}
-
-#define OP1(O,L) {   \
-  .code = OPC_ ## O, \
-  .argc = 1,         \
-  .args = {L}        \
-}
-
-#define OP2(O,L,R) { \
-  .code = OPC_ ## O, \
-  .argc = 2,         \
-  .args = {L,R}      \
-}
-
-#define VAR(N) {   \
-  .type = OPT_VAR, \
-  .data.str = #N   \
-}
-
-#define TID(T) {   \
-  .type = OPT_TID, \
-  .data.tid = T    \
-}
-
-#define SYM(S) {         \
-  .type = OPT_SYM,       \
-  .data.sym = VM_NAME(S) \
-}
-
-#define STR(S) {   \
-  .type = OPT_STR, \
-  .data.str = S    \
-}
-
-#include <stdio.h>
-
 int main (void)
 {
-  struct tab tab;
-  tab_init(&tab);
-
-  tab_put(&tab, "a", "hello", sizeof("hello"));
-  tab_put(&tab, "b", "world", sizeof("world"));
-  
-  puts(tab_get(&tab, "a"));
-  puts(tab_get(&tab, "b"));
-
-  tab_free(&tab);
-
-  #if 0
   struct vm vm;
   vm_init(&vm);
 
   struct vm_op ops[] = {
-    OP2(VAL, VAR(msg),  TID(VAR_STR)),
-    OP2(SET, VAR(msg),  STR("hello world")),
-    OP2(INI, SYM(puts), TID(VAR_NIL)),
-    OP1(SND, VAR(msg)),
-    OP0(EXC),
-    OP1(DEL, VAR(msg)),
-    OP0(END)
+    { 
+      .code = OPC_VAL, 
+      .argc = 2, 
+      .argv = {
+        {
+          .type = OPT_VID,
+          .data.vid = 0
+        },
+        {
+          .type = OPT_TID,
+          .data.tid = VAR_STR
+        }
+      } 
+    }, {
+      .code = OPC_SET,
+      .argc = 2,
+      .argv = {
+        {
+          .type = OPT_VID,
+          .data.vid = 0
+        }, {
+          .type = OPT_STR,
+          .data.str = "hello world"
+        }
+      }
+    }, {
+      .code = OPC_INI,
+      .argc = 2,
+      .argv = {
+        {
+          .type = OPT_SYM,
+          .data.sym = VM_NAME(puts)
+        },
+        {
+          .type = OPT_TID,
+          .data.tid = VAR_NIL
+        }
+      }
+    }, {
+      .code = OPC_SND,
+      .argc = 1,
+      .argv = {
+        {
+          .type = OPT_VID,
+          .data.vid = 0
+        }
+      }
+    }, {
+      .code = OPC_EXC,
+      .argc = 0
+    }, {
+      .code = OPC_DEL,
+      .argc = 1,
+      .argv = {
+        {
+          .type = OPT_VID,
+          .data.vid = 0
+        }
+      }
+    }, {
+      .code = OPC_END,
+      .argc = 0
+    }
   };
 
   vm_exec(&vm, ops); 
-  #endif
   return 0;
 }
