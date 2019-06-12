@@ -20,18 +20,8 @@
   #define VM_USE_QWORD defined(__x86_64)
 #endif
 
-#ifdef __x86_64
-  #define VM_MASK_BYTE  0xffffffffffffff00ull
-  #define VM_MASK_WORD  0xffffffffffff0000ull
-  #define VM_MASK_DWORD 0xffffffff00000000ull
-  #define VM_MASK_QWORD 0x0000000000000000ull
-#else
-  #define VM_MASK_BYTE  0xffffff00ul
-  #define VM_MASK_WORD  0xffff0000ul
-  #define VM_MASK_DWORD 0x00000000ul
-#endif
-
 struct vm;
+struct vm_op;
 
 #if VM_USE_QWORD
   typedef u64 vm_max;
@@ -40,6 +30,7 @@ struct vm;
 #endif
 
 typedef intptr_t vm_ptr;
+typedef void(*vm_oph)(struct vm*, struct vm_op*);
 
 /**
  * vm opcodes 
@@ -58,6 +49,9 @@ enum vm_opc {
   OPC_CLS,
   OPC_END,
 };
+
+/* keep this updated! */
+#define NUM_OPC 12
 
 /**
  * vm opcode payload kind 
