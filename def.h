@@ -12,4 +12,3 @@ typedef uint32_t u32;
 #ifdef __x86_64
   typedef uint64_t u64;
 #endif
- 

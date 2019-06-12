@@ -3,6 +3,7 @@
 // during vm-generation (see vm_gen.php).
 
 #include "vm.h"
+#include "op.h"
 #include <assert.h>
 #define NEXT return;
 #define HALT return;
@@ -17,8 +18,27 @@ OPCODE(NOP) {
   NEXT
 }
 
-OPCODE(STK, NUM) {
-  init_stk(vm, _0->data.num);
+OPCODE(SUB, 2) {
+  switch (_0->type) {
+    case OPT_BYTE_PTR: {
+      u8 *dst, src;
+      break;
+    }
+    case OPT_WORD_PTR: {
+      u16 *dst, src;
+      break;
+    }
+    case OPT_DWORD_PTR: {
+      u32 *dst, src;
+      break;
+    }
+  #ifdef VM_USE_QWORD
+    case OPT_QWORD_PTR: {
+      u64 *dst, src;
+      break;
+    }
+  #endif
+  }
   NEXT
 }
 

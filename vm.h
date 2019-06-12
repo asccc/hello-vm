@@ -20,6 +20,17 @@
 #define VM_USE_QWORD defined(__x86_64)
 #endif
 
+#ifdef __x86_64
+#define VM_MASK_BYTE  0xffffffffffffff00ull
+#define VM_MASK_WORD  0xffffffffffff0000ull
+#define VM_MASK_DWORD 0xffffffff00000000ull
+#define VM_MASK_QWORD 0x0000000000000000ull
+#else
+#define VM_MASK_BYTE  0xffffff00ul
+#define VM_MASK_WORD  0xffff0000ul
+#define VM_MASK_DWORD 0x00000000ul
+#endif
+
 struct vm;
 
 /**
@@ -46,13 +57,20 @@ enum vm_opc {
 enum vm_opt {
   OPT_UNDEF = 0,
   OPT_BYTE,
-  OPT_BYTE_PTR,
   OPT_WORD,
-  OPT_WORD_PTR,
   OPT_DWORD,
-  OPT_DWORD_PTR,
+
 #if VM_USE_QWORD
   OPT_QWORD,
+#endif
+
+  OPT_PTR,
+
+  OPT_BYTE_PTR,
+  OPT_WORD_PTR,
+  OPT_DWORD_PTR,
+
+#if VM_USE_QWORD
   OPT_QWORD_PTR,
 #endif
 };
