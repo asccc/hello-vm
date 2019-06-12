@@ -13,25 +13,33 @@
 #define VM_FUNC(ID) VM_ATTR void VM_NAME(ID) (struct vm *vm)
 
 #ifndef VM_STACK_SIZE
-#define VM_STACK_SIZE 4096
+  #define VM_STACK_SIZE 4096
 #endif
 
 #ifndef VM_USE_QWORD
-#define VM_USE_QWORD defined(__x86_64)
+  #define VM_USE_QWORD defined(__x86_64)
 #endif
 
 #ifdef __x86_64
-#define VM_MASK_BYTE  0xffffffffffffff00ull
-#define VM_MASK_WORD  0xffffffffffff0000ull
-#define VM_MASK_DWORD 0xffffffff00000000ull
-#define VM_MASK_QWORD 0x0000000000000000ull
+  #define VM_MASK_BYTE  0xffffffffffffff00ull
+  #define VM_MASK_WORD  0xffffffffffff0000ull
+  #define VM_MASK_DWORD 0xffffffff00000000ull
+  #define VM_MASK_QWORD 0x0000000000000000ull
 #else
-#define VM_MASK_BYTE  0xffffff00ul
-#define VM_MASK_WORD  0xffff0000ul
-#define VM_MASK_DWORD 0x00000000ul
+  #define VM_MASK_BYTE  0xffffff00ul
+  #define VM_MASK_WORD  0xffff0000ul
+  #define VM_MASK_DWORD 0x00000000ul
 #endif
 
 struct vm;
+
+#if VM_USE_QWORD
+  typedef u64 vm_max;
+#else
+  typedef u32 vm_max;
+#endif
+
+typedef intptr_t vm_ptr;
 
 /**
  * vm opcodes 
@@ -40,13 +48,13 @@ enum vm_opc {
   OPC_NOP = 0,
   OPC_SUB,
   OPC_ADD,
+  OPC_MUL,
+  OPC_DIV,
   OPC_MOV,
   OPC_CALL,
   OPC_RET,
   OPC_PUSH,
   OPC_POP,
-  OPC_BST,
-  OPC_RST,
   OPC_CLS,
   OPC_END,
 };
@@ -54,38 +62,26 @@ enum vm_opc {
 /**
  * vm opcode payload kind 
  */
-enum vm_opt {
-  OPT_UNDEF = 0,
-  OPT_BYTE,
-  OPT_WORD,
-  OPT_DWORD,
+#define OPT_UNDEF 0u
+#define OPT_BYTE  1u
+#define OPT_WORD  2u
+#define OPT_DWORD 3u
 
 #if VM_USE_QWORD
-  OPT_QWORD,
+  #define OPT_QWORD 4u
 #endif
 
-  OPT_PTR,
+#define OPT_PAIR(a,b) (a << 16) | b
 
-  OPT_BYTE_PTR,
-  OPT_WORD_PTR,
-  OPT_DWORD_PTR,
-
-#if VM_USE_QWORD
-  OPT_QWORD_PTR,
-#endif
-};
-
-enum vm_flg {
-  FLG_RES = 1 << 0, /* unused */
-  FLG_SNG = 1 << 1,
-};
+#define VM_FLG_RES 1 << 0
+#define VM_FLG_SGN 1 << 1
 
 /**
  * represents a opcode argument
  */
 struct vm_arg {
-  enum vm_opt type;
-  enum vm_flg flag;
+  u32 type;
+  u32 flag;
   union {
     u8 byte;
     u16 word;
@@ -93,7 +89,6 @@ struct vm_arg {
   #if VM_USE_QWORD
     u64 qword;
   #endif
-    intptr_t ptr;
   } data;
 };
 
@@ -106,9 +101,7 @@ struct vm_op {
   struct vm_arg argv[2];
 };
 
-#define VM_CF 1 << 0
 #define VM_ZF 1 << 1
-#define VM_OF 1 << 2
 
 /**
  * virtual machine struct
@@ -118,16 +111,22 @@ struct vm {
   u8 *sp;
   u8 *mem;
   u32 st;
-#ifdef VM_USE_QWORD
-  u64 cr;
-#else
-  u32 cr;
-#endif
   struct vm_op *ep;
   struct vm_arg r0;
   struct vm_arg r1;
   struct vm_arg r2;
 };
+
+/**
+ * sets a flag
+ * 
+ * @param the virtual machine struct
+ * @param the flag to set
+ */
+extern inline VM_CALL void vm_flag (struct vm *vm, u32 flag)
+{
+  vm->st |= flag;
+}
 
 /**
  * virtual machine initializer

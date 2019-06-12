@@ -3,10 +3,12 @@
 // during vm-generation (see vm_gen.php).
 
 #include "vm.h"
-#include "op.h"
 #include <assert.h>
 #define NEXT return;
 #define HALT return;
+#define BAIL return;
+#define WARN(m)
+#define FLAG(x)
 #define OPCODE(A, ...) void dummy__ ## A ()
 extern struct vm *vm;
 extern struct vm_arg *_0;
@@ -19,59 +21,47 @@ OPCODE(NOP) {
 }
 
 OPCODE(SUB, 2) {
-  switch (_0->type) {
-    case OPT_BYTE_PTR: {
-      u8 *dst, src;
+  switch (OPT_PAIR(_0->type, _1->type)) {
+    case OPT_PAIR(OPT_BYTE, OPT_BYTE): {
+      _0->data.byte -= _1->data.byte;
+      if (_0->data.byte == 0) {
+        vm_flag(vm, VM_ZF);
+      }
       break;
     }
-    case OPT_WORD_PTR: {
-      u16 *dst, src;
+    case OPT_PAIR(OPT_WORD, OPT_WORD): {
+      _0->data.word -= _1->data.word;
+      if (_0->data.word == 0) {
+        vm_flag(vm, VM_ZF);
+      }
       break;
     }
-    case OPT_DWORD_PTR: {
-      u32 *dst, src;
+    case OPT_PAIR(OPT_DWORD, OPT_DWORD): {
+      _0->data.dword -= _1->data.dword;
+      if (_0->data.dword == 0) {
+        vm_flag(vm, VM_ZF);
+      }
       break;
     }
-  #ifdef VM_USE_QWORD
-    case OPT_QWORD_PTR: {
-      u64 *dst, src;
+  #if VM_USE_QWORD
+    case OPT_PAIR(OPT_QWORD, OPT_QWORD): {
+      _0->data.qword -= _1->data.qword;
+      if (_0->data.qword == 0) {
+        vm_flag(vm, VM_ZF);
+      }
       break;
     }
   #endif
+    default:
+      BAIL
   }
   NEXT
 }
 
-OPCODE(SET, VID, NUM|STR|SYM) {
-  updt_var(vm, _0->data.vid, _1);
-  NEXT
-}
+OPCODE(ADD, 2) {
+  switch (OPT_PAIR(_0->type, _1->type)) {
+    case OPT_PAIR(OPT_BYTE, OPT_BYTE): {
 
-OPCODE(INI, SYM|VID, NUM) {
-  init_inv(vm, _0, _1->data.num);
-  NEXT
-}
-
-OPCODE(SND, VID|NUM|SYM|STR) {
-  if (_0->type == OPT_VID) {
-    send_var(vm, _0->data.vid);
-    NEXT
+    }
   }
-  send_val(vm, _0);
-  NEXT
-}
-
-OPCODE(EXC) {
-  exec_inv(vm);
-  NEXT
-}
-
-OPCODE(DEL, VID) {
-  free_var(vm, _0->data.vid);
-  NEXT
-}
-
-OPCODE(END) {
-  free_stk(vm);
-  HALT
 }

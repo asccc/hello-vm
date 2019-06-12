@@ -19,11 +19,20 @@ VM_CALL void vm_init (struct vm *vm)
   vm->bp = vm->mem;
   vm->ep = 0;
   vm->st = 0;
-  vm->cr = 0;
 
   memset(&(vm->r0), 0, sizeof(vm->r0));
   memset(&(vm->r1), 0, sizeof(vm->r1));
   memset(&(vm->r2), 0, sizeof(vm->r2));
+}
+
+/**
+ * {@inheritdoc}
+ */
+VM_CALL void vm_flag (struct vm *vm, u32 flag)
+{
+  assert(vm != 0);
+  
+  vm->st |= flag;
 }
 
 /**
