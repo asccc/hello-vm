@@ -5,62 +5,61 @@
 
 #include <stdbool.h>
 
-#define VM_NAME(ID) vm_sym__ ## ID
 #define VM_CALL __attribute__((nonnull))
 #define VM_INTR VM_CALL void
-#define VM_FUNC(ID)                  \
-  __attribute__((noinline, nonnull)) \
-  void VM_NAME(ID) (struct vm *vm)
+
+#define VM_NAME(ID) vm_sym__ ## ID
+#define VM_ATTR __attribute__((noinline, nonnull))
+#define VM_FUNC(ID) VM_ATTR void VM_NAME(ID) (struct vm *vm)
+
+#ifndef VM_STACK_SIZE
+#define VM_STACK_SIZE 4096
+#endif
+
+#ifndef VM_USE_QWORD
+#define VM_USE_QWORD defined(__x86_64)
+#endif
 
 struct vm;
-typedef void(*vm_sym)(struct vm*);
 
 /**
  * vm opcodes 
  */
 enum vm_opc {
   OPC_NOP = 0,
-  OPC_STK,
-  OPC_SET,
-  OPC_INI,
-  OPC_SND,
-  OPC_EXC,
-  OPC_DEL,
-  OPC_END
+  OPC_SUB,
+  OPC_ADD,
+  OPC_MOV,
+  OPC_CALL,
+  OPC_RET,
+  OPC_PUSH,
+  OPC_POP,
+  OPC_BST,
+  OPC_RST,
+  OPC_CLS,
+  OPC_END,
 };
 
 /**
  * vm opcode payload kind 
  */
 enum vm_opt {
-  OPT_NUM = 0,
-  OPT_VID,
-  OPT_STR,
-  OPT_TID,
-  OPT_SYM
+  OPT_UNDEF = 0,
+  OPT_BYTE,
+  OPT_BYTE_PTR,
+  OPT_WORD,
+  OPT_WORD_PTR,
+  OPT_DWORD,
+  OPT_DWORD_PTR,
+#if VM_USE_QWORD
+  OPT_QWORD,
+  OPT_QWORD_PTR,
+#endif
 };
 
-/**
- * represents a value variant 
- */
-enum vm_var {
-  VAR_NIL = 0,
-  VAR_NUM,
-  VAR_STR,
-  VAR_SYM
-};
-
-/**
- * represents a value
- */
-struct vm_val {
-  enum vm_var type;
-  bool temp;
-  union {
-    i64 num;
-    char *str;
-    vm_sym sym;
-  } data;
+enum vm_flg {
+  FLG_RES = 1 << 0, /* unused */
+  FLG_SNG = 1 << 1,
 };
 
 /**
@@ -68,12 +67,15 @@ struct vm_val {
  */
 struct vm_arg {
   enum vm_opt type;
+  enum vm_flg flag;
   union {
-    u32 vid;
-    char *str;
-    enum vm_var tid;
-    vm_sym sym;
-    i64 num;
+    u8 byte;
+    u16 word;
+    u32 dword;
+  #if VM_USE_QWORD
+    u64 qword;
+  #endif
+    intptr_t ptr;
   } data;
 };
 
@@ -86,33 +88,27 @@ struct vm_op {
   struct vm_arg argv[2];
 };
 
-/**
- * represents a stack
- */
-struct vm_stk {
-  szt size;
-  struct vm_val **data;
-  struct vm_stk *prev;
-};
-
-/**
- * represents a invocation
- */
-struct vm_inv {
-  vm_sym sym;
-  u32 argc;
-  u32 indx;
-  struct vm_val **argv;
-  struct vm_val *retv;
-};
+#define VM_CF 1 << 0
+#define VM_ZF 1 << 1
+#define VM_OF 1 << 2
 
 /**
  * virtual machine struct
  */
 struct vm {
-  szt ep;
-  struct vm_stk *stk;
-  struct vm_inv *inv;
+  u8 *bp;
+  u8 *sp;
+  u8 *mem;
+  u32 st;
+#ifdef VM_USE_QWORD
+  u64 cr;
+#else
+  u32 cr;
+#endif
+  struct vm_op *ep;
+  struct vm_arg r0;
+  struct vm_arg r1;
+  struct vm_arg r2;
 };
 
 /**
@@ -121,6 +117,13 @@ struct vm {
  * @param  the virtual machine struct
  */
 extern VM_CALL void vm_init (struct vm *);
+
+/**
+ * cleanup virtual machine
+ * 
+ * @param the virtual machine struct
+ */
+extern VM_CALL void vm_free (struct vm *);
 
 /**
  * virtual machine executor
