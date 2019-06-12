@@ -73,15 +73,11 @@ enum vm_opc {
 
 #define OPT_PAIR(a,b) (a << 16) | b
 
-#define VM_FLG_RES 1 << 0
-#define VM_FLG_SGN 1 << 1
-
 /**
  * represents a opcode argument
  */
 struct vm_arg {
   u32 type;
-  u32 flag;
   union {
     u8 byte;
     u16 word;
