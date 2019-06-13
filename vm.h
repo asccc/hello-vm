@@ -119,6 +119,14 @@ extern inline VM_CALL void vm_flag (struct vm *vm, u32 flag)
 }
 
 /**
+ * emits a warning message in the vm-context
+ * 
+ * @param the virtual machine struct
+ * @param the warning message
+ */
+extern VM_CALL void vm_warn (struct vm *, const char *);
+
+/**
  * virtual machine initializer
  * 
  * @param  the virtual machine struct

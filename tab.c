@@ -17,7 +17,7 @@ static void grow_mem (struct tab *, szt);
 static u32 hash_gen (char *);
 
 /** re-hashes the table */
-static void hash_tab (struct tab*); 
+static void hash_tab (struct tab *);
 
 /** inserts a pair into the table */
 static void put_pair (struct tab *, struct tab_par *);
