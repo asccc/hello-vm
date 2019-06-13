@@ -7,6 +7,7 @@ int main (void)
   vm_init(&vm);
 
   struct vm_op ops[] = {
+    { .code = OPC_DBG },
     { .code = OPC_END }
   };
 

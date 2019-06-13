@@ -377,6 +377,8 @@ extern inline OP_FUNC op_dbg (OP_ARGS)
     bit >>= 1;
   } while (bit > 0);
 
+  puts("");
+
   return RES_NXT;
 
 #endif
