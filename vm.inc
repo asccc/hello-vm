@@ -1,62 +1,60 @@
-case OPC_NOP: {
-  test_argc("NOP", op->argc == 0);
-  vm->ep++; break;
-}
-case OPC_STK: {
-  test_argc("STK", op->argc == 1);
-  test_argv("STK", 0, (op->argv + 0)->type == OPT_NUM);
-  init_stk(vm, (op->argv + 0)->data.num);
-  vm->ep++; break;
-}
-case OPC_SET: {
-  test_argc("SET", op->argc == 2);
-  test_argv("SET", 0, (op->argv + 0)->type == OPT_VID);
-  test_argv("SET", 1, 
-    (op->argv + 1)->type == OPT_NUM || 
-    (op->argv + 1)->type == OPT_STR || 
-    (op->argv + 1)->type == OPT_SYM
-  );
-  updt_var(vm, (op->argv + 0)->data.vid, (op->argv + 1));
-  vm->ep++; break;
-}
-case OPC_INI: {
-  test_argc("INI", op->argc == 2);
-  test_argv("INI", 0, 
-    (op->argv + 0)->type == OPT_SYM || 
-    (op->argv + 0)->type == OPT_VID
-  );
-  test_argv("INI", 1, (op->argv + 1)->type == OPT_NUM);
-  init_inv(vm, (op->argv + 0), (op->argv + 1)->data.num);
-  vm->ep++; break;
-}
-case OPC_SND: {
-  test_argc("SND", op->argc == 1);
-  test_argv("SND", 0, 
-    (op->argv + 0)->type == OPT_VID || 
-    (op->argv + 0)->type == OPT_NUM || 
-    (op->argv + 0)->type == OPT_SYM || 
-    (op->argv + 0)->type == OPT_STR
-  );
-  if ((op->argv + 0)->type == OPT_VID) {
-    send_var(vm, (op->argv + 0)->data.vid);
-    vm->ep++; break;
-  }
-  send_val(vm, (op->argv + 0));
-  vm->ep++; break;
-}
-case OPC_EXC: {
-  test_argc("EXC", op->argc == 0);
-  exec_inv(vm);
-  vm->ep++; break;
-}
-case OPC_DEL: {
-  test_argc("DEL", op->argc == 1);
-  test_argv("DEL", 0, (op->argv + 0)->type == OPT_VID);
-  free_var(vm, (op->argv + 0)->data.vid);
-  vm->ep++; break;
-}
-case OPC_END: {
-  test_argc("END", op->argc == 0);
-  free_stk(vm);
-  goto end;
-}
+case OPC_NOP:
+  rs = op_nop(vm, op);
+  break;
+case OPC_SUB:
+  rs = op_sub(vm, op);
+  break;
+case OPC_ADD:
+  rs = op_add(vm, op);
+  break;
+case OPC_MUL:
+  rs = op_mul(vm, op);
+  break;
+case OPC_DIV:
+  rs = op_div(vm, op);
+  break;
+case OPC_MOD:
+  rs = op_mod(vm, op);
+  break;
+case OPC_POS:
+  rs = op_pos(vm, op);
+  break;
+case OPC_NEG:
+  rs = op_neg(vm, op);
+  break;
+case OPC_AND:
+  rs = op_and(vm, op);
+  break;
+case OPC_OR:
+  rs = op_or(vm, op);
+  break;
+case OPC_XOR:
+  rs = op_xor(vm, op);
+  break;
+case OPC_NOT:
+  rs = op_not(vm, op);
+  break;
+case OPC_MOV:
+  rs = op_mov(vm, op);
+  break;
+case OPC_CALL:
+  rs = op_call(vm, op);
+  break;
+case OPC_RET:
+  rs = op_ret(vm, op);
+  break;
+case OPC_PUSH:
+  rs = op_push(vm, op);
+  break;
+case OPC_POP:
+  rs = op_pop(vm, op);
+  break;
+case OPC_CLS:
+  rs = op_cls(vm, op);
+  break;
+case OPC_DBG:
+  rs = op_dbg(vm, op);
+  break;
+case OPC_END:
+  rs = op_end(vm, op);
+  break;

@@ -17,7 +17,11 @@
 #endif
 
 #ifndef VM_USE_QWORD
-  #define VM_USE_QWORD defined(__x86_64)
+  #ifdef __x86_64
+    #define VM_USE_QWORD 1
+  #else
+    #define VM_USE_QWORD 0
+  #endif
 #endif
 
 struct vm;
@@ -41,12 +45,20 @@ enum vm_opc {
   OPC_ADD,
   OPC_MUL,
   OPC_DIV,
+  OPC_MOD,
+  OPC_POS,
+  OPC_NEG,
+  OPC_AND,
+  OPC_OR,
+  OPC_XOR,
+  OPC_NOT,
   OPC_MOV,
   OPC_CALL,
   OPC_RET,
   OPC_PUSH,
   OPC_POP,
   OPC_CLS,
+  OPC_DBG,
   OPC_END,
 };
 
@@ -79,6 +91,7 @@ struct vm_arg {
   #if VM_USE_QWORD
     u64 qword;
   #endif
+    vm_max value;
   } data;
 };
 
@@ -113,10 +126,7 @@ struct vm {
  * @param the virtual machine struct
  * @param the flag to set
  */
-extern inline VM_CALL void vm_flag (struct vm *vm, u32 flag)
-{
-  vm->st |= flag;
-}
+extern VM_CALL void vm_flag (struct vm *, u32);
 
 /**
  * emits a warning message in the vm-context

@@ -1,17 +1,34 @@
-#pragma once
-
 #include "vm.h"
+
+/* 
+  all opcode handlers are declared "extern inline".
+  this way, all functions are call- and debug-able
+  in unoptimized code and always inlined in 
+  optimized code.
+
+  the trade-off: only one file can include this 
+  file, because otherwise multiple definitions
+  of the same functions will be generated. but 
+  thats okay, only the vm needs the handlers 
+  anyway.
+*/
+
+#ifndef NDEBUG         
+  #include <stdio.h>
+#endif
 
 /* operation result */
 enum op_res {
-  RES_ERR = 0, /* bail out */
-  RES_HLT,     /* terminate execution */
-  RES_NXT,     /* continue with next instruction */
-  RES_CNT      /* continue with current instruction */
+  RES_ERR = 0,
+  RES_HLT,
+  RES_END,
+  RES_NXT,
+  RES_CNT
 };
 
 #define OP_CALL __attribute__((nonnull))
 #define OP_FUNC OP_CALL enum op_res
+
 #define OP_ARGS struct vm *vm, struct vm_op *op
 #define OP_ARGV(I) (op->argv + (I))
 #define OP_TYPE(I) OP_ARGV(I)->type
@@ -90,7 +107,7 @@ enum op_res {
 
 #define BINOP_PAIR_CASE(T, M, O)  \
   case OPT_PAIR(T, T): {          \
-    OP_DATA(0).M O= OP_DATA(1).M; \
+    OP_DATA(0).M O ## = OP_DATA(1).M; \
     if (OP_DATA(0).M == 0) {      \
       vm_flag(vm, VM_ZF);         \
     }                             \
@@ -126,8 +143,7 @@ enum op_res {
  * handler for the SUB opcode
  * 
  * @param the virtual machine struct
- * @param the first argument (destination)
- * @param the second argument (source)
+ * @param the virtual opcode
  */
 extern inline OP_FUNC op_sub (OP_ARGS)
 {
@@ -138,8 +154,7 @@ extern inline OP_FUNC op_sub (OP_ARGS)
  * handler for the ADD opcode
  * 
  * @param the virtual machine struct
- * @param the first argument (destination)
- * @param the second argument (source)
+ * @param the virtual opcode
  */
 extern inline OP_FUNC op_add (OP_ARGS)
 {
@@ -150,8 +165,7 @@ extern inline OP_FUNC op_add (OP_ARGS)
  * handler for the MUL opcode
  * 
  * @param the virtual machine struct
- * @param the first argument (destination)
- * @param the second argument (source)
+ * @param the virtual opcode
  */
 extern inline OP_FUNC op_mul (OP_ARGS)
 {
@@ -162,8 +176,7 @@ extern inline OP_FUNC op_mul (OP_ARGS)
  * handler for the DIV opcode
  * 
  * @param the virtual machine struct
- * @param the first argument (destination)
- * @param the second argument (source)
+ * @param the virtual opcode
  */
 extern inline OP_FUNC op_div (OP_ARGS)
 {
@@ -175,8 +188,7 @@ extern inline OP_FUNC op_div (OP_ARGS)
  * handler for the MOD opcode
  * 
  * @param the virtual machine struct
- * @param the first argument (destination)
- * @param the second argument (source)
+ * @param the virtual opcode
  */
 extern inline OP_FUNC op_mod (OP_ARGS)
 {
@@ -185,11 +197,32 @@ extern inline OP_FUNC op_mod (OP_ARGS)
 }
 
 /**
+ * handler for the SHL opcode
+ * 
+ * @param the virtual machine struct
+ * @param the virtual opcode
+ */
+extern inline OP_FUNC op_shl (OP_ARGS)
+{
+  BINOP(<<);
+}
+
+/**
+ * handler for the SHR opcode
+ * 
+ * @param the virtual machine struct
+ * @param the virtual opcode
+ */
+extern inline OP_FUNC op_shr (OP_ARGS)
+{
+  BINOP(>>);
+}
+
+/**
  * handler for the AND opcode
  * 
  * @param the virtual machine struct
- * @param the first argument (destination)
- * @param the second argument (source)
+ * @param the virtual opcode
  */
 extern inline OP_FUNC op_and (OP_ARGS)
 {
@@ -200,8 +233,7 @@ extern inline OP_FUNC op_and (OP_ARGS)
  * handler for the OR opcode
  * 
  * @param the virtual machine struct
- * @param the first argument (destination)
- * @param the second argument (source)
+ * @param the virtual opcode
  */
 extern inline OP_FUNC op_or (OP_ARGS)
 {
@@ -212,8 +244,7 @@ extern inline OP_FUNC op_or (OP_ARGS)
  * handler for the XOR opcode
  * 
  * @param the virtual machine struct
- * @param the first argument (destination)
- * @param the second argument (source)
+ * @param the virtual opcode
  */
 extern inline OP_FUNC op_xor (OP_ARGS)
 {
@@ -224,19 +255,18 @@ extern inline OP_FUNC op_xor (OP_ARGS)
  * handler for the MOV opcode
  * 
  * @param the virtual machine struct
- * @param the first argument (destination)
- * @param the second argument (source)
+ * @param the virtual opcode
  */
 extern inline OP_FUNC op_mov (OP_ARGS)
 {
-  BINOP(=)
+  BINOP() /* without operator, the op gets decoded to a single "=" */
 }
 
 /**
  * handler for the NEG opcode
  * 
  * @param the virtual machine struct
- * @param the argument (source + destination)
+ * @param the virtual opcode
  */
 extern inline OP_FUNC op_neg (OP_ARGS)
 {
@@ -247,7 +277,7 @@ extern inline OP_FUNC op_neg (OP_ARGS)
  * handler for the POS opcode
  * 
  * @param the virtual machine struct
- * @param the argument (source + destination)
+ * @param the virtual opcode
  */
 extern inline OP_FUNC op_pos (OP_ARGS)
 {
@@ -258,9 +288,96 @@ extern inline OP_FUNC op_pos (OP_ARGS)
  * handler for the NOT opcode
  * 
  * @param the virtual machine struct
- * @param the argument (source + destination)
+ * @param the virtual opcode
  */
 extern inline OP_FUNC op_not (OP_ARGS)
 {
   UNOP(~)
+}
+
+/**
+ * handler for the NOP opcode
+ * 
+ * @param the virtual machine struct
+ * @param the virtual opcode
+ */
+extern inline OP_FUNC op_nop (OP_ARGS)
+{
+  return RES_NXT;
+}
+
+extern inline OP_FUNC op_call (OP_ARGS)
+{
+  return RES_HLT;
+}
+
+extern inline OP_FUNC op_ret (OP_ARGS)
+{
+  return RES_HLT;
+}
+
+extern inline OP_FUNC op_push (OP_ARGS)
+{
+  return RES_HLT;
+}
+
+extern inline OP_FUNC op_pop (OP_ARGS)
+{
+  return RES_HLT;
+}
+
+extern inline OP_FUNC op_end (OP_ARGS)
+{
+  return RES_END;
+}
+
+extern inline OP_FUNC op_cls (OP_ARGS)
+{
+  return RES_HLT;
+}
+
+/**
+ * handler for the DBG opcode
+ * 
+ * @param the virtual machine struct
+ * @param the virtual opcode
+ */
+extern inline OP_FUNC op_dbg (OP_ARGS)
+{
+#ifdef NDEBUG
+  /* DBG is a NOP in non-debug builds */
+  return RES_NXT;
+#else
+
+  #if VM_USE_QWORD
+    #ifdef PRIu64
+      #define FMT_REG "%" PRIu64
+    #else
+      #ifndef _WIN32
+        #define FMT_REG "%lu"
+      #else
+        #define FMT_REG "%llu"
+      #endif
+    #endif
+  #else
+    #define FMT_REG "%lu"
+  #endif
+
+  printf("BP = %p\n", (void *) vm->bp);
+  printf("SP = %p\n", (void *) vm->sp);
+  printf("EP = %p\n", (void *) vm->ep);
+  printf("R0 = { %d, " FMT_REG " }\n", vm->r0.type, vm->r0.data.value);
+  printf("R1 = { %d, " FMT_REG " }\n", vm->r1.type, vm->r1.data.value);
+  printf("R2 = { %d, " FMT_REG " }\n", vm->r2.type, vm->r2.data.value);
+  printf("ST = ");
+
+  u32 bit = 0x80000000ul;
+  do {
+    putc((vm->st & bit) ? '1' : '0', stdout);
+    bit >>= 1;
+  } while (bit > 0);
+
+  return RES_NXT;
+
+#endif
 }

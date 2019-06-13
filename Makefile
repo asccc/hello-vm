@@ -33,6 +33,6 @@ test: all
 	./$(PROG)
 
 clean:
-	rm $(PROG)
+	rm -f $(PROG)
 	rm *.o
-	rm vm.inc
+	rm -f vm.inc
