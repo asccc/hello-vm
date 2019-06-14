@@ -62,37 +62,53 @@ enum vm_opc {
   OPC_END,
 };
 
-/* keep this updated! */
-#define NUM_OPC 12
-
 /**
  * vm opcode payload kind 
  */
-#define OPT_UNDEF 0u
-#define OPT_BYTE  1u
-#define OPT_WORD  2u
-#define OPT_DWORD 3u
+#define OPT_UNDEF 0
+#define OPT_BYTE  8
+#define OPT_WORD  16
+#define OPT_DWORD 32
 
 #if VM_USE_QWORD
-  #define OPT_QWORD 4u
+  #define OPT_QWORD 64
 #endif
 
-#define OPT_PAIR(a,b) (a << 16) | b
+#define OPT_ADDR -1
+#define OPT_PAIR(A,B) ((A << 16) | B)
+
+/**
+ * represents a value
+ */
+union vm_val {
+  /* literal values */
+  u8 byte;
+  u16 word;
+  u32 dword;
+
+#if VM_USE_QWORD
+  u64 qword;
+#endif
+
+#ifndef NDEBUG
+  intptr_t value;
+#endif
+
+  u8  *pntr;
+  u8 **addr;
+};
+
+#define ARG_LIT (1u << 0)
+#define ARG_PTR (1u << 1)
+#define ARG_ADR (1u << 2)
 
 /**
  * represents a opcode argument
  */
 struct vm_arg {
   u32 type;
-  union {
-    u8 byte;
-    u16 word;
-    u32 dword;
-  #if VM_USE_QWORD
-    u64 qword;
-  #endif
-    vm_max value;
-  } data;
+  u32 flag;
+  union vm_val data;
 };
 
 /**
@@ -104,20 +120,21 @@ struct vm_op {
   struct vm_arg argv[2];
 };
 
-#define VM_ZF 1 << 1
+#define VM_EF (1u << 0)
+#define VM_ZF (1u << 1)
 
 /**
  * virtual machine struct
  */
 struct vm {
+  u32 st;
+  struct vm_op *ep;
+  union vm_val r0;
+  union vm_val r1;
+  union vm_val r2;
   u8 *bp;
   u8 *sp;
   u8 *mem;
-  u32 st;
-  struct vm_op *ep;
-  struct vm_arg r0;
-  struct vm_arg r1;
-  struct vm_arg r2;
 };
 
 /**
@@ -127,6 +144,15 @@ struct vm {
  * @param the flag to set
  */
 extern VM_CALL void vm_flag (struct vm *, u32);
+
+/**
+ * checks if a flag is set
+ *
+ * @param the virtual machine struct
+ * @param the flag to check
+ * @return true if set, false otherwise
+ */
+extern VM_CALL bool vm_fchk (struct vm *, u32);
 
 /**
  * emits a warning message in the vm-context

@@ -1,17 +1,24 @@
+/* 
+  ONLY vm.c CAN INCLUDE THIS FILE!
+  DO NOT INCLUDE THIS HEADER SOMEWHERE ELSE!
+  OTHERWISE A PORT TO THE MACRO-HELL WILL OPEN!
+*/
+
 #include "vm.h"
 
-/* 
-  all opcode handlers are declared "extern inline".
-  this way, all functions are call- and debug-able
-  in unoptimized code and always inlined in 
-  optimized code.
+/* implemented in vm.c */
+static inline u8   memr_8 (struct vm*, u8*);
+static inline u16  memr_16 (struct vm*, u8*);
+static inline u32  memr_32 (struct vm*, u8*);
+static inline void memw_8 (struct vm*, u8*, u8);
+static inline void memw_16 (struct vm*, u8*, u16);
+static inline void memw_32 (struct vm*, u8*, u32);
 
-  the trade-off: only one file can include this 
-  file, because otherwise multiple definitions
-  of the same functions will be generated. but 
-  thats okay, only the vm needs the handlers 
-  anyway.
-*/
+#if VM_USE_QWORD
+  /* implemented in vm.c */
+  static inline u64  memr_64 (struct vm*, u8*);
+  static inline void memw_64 (struct vm*, u8*, u64);
+#endif
 
 #ifndef NDEBUG         
   #include <stdio.h>
@@ -31,11 +38,43 @@ enum op_res {
 
 #define OP_ARGS struct vm *vm, struct vm_op *op
 #define OP_ARGV(I) (op->argv + (I))
+
 #define OP_TYPE(I) OP_ARGV(I)->type
 #define OP_DATA(I) OP_ARGV(I)->data
+#define OP_PNTR(I) OP_DATA(I).pntr
+
+#define OP_ADDR(I) ((vm_ptr)*(OP_DATA(I).addr))
+#define OP_ADDL(I) (*(OP_DATA(I).addr))
+
+#define OP_FLAG(I) OP_ARGV(I)->flag
+#define OP_ALIT(I) (OP_FLAG(I) & ARG_LIT)
+#define OP_APTR(I) (OP_FLAG(I) & ARG_PTR)
+#define OP_AADR(I) (OP_FLAG(I) & ARG_ADR)
+
+#define OP_DEST(I) (OP_APTR(I) || OP_AADR(I))
+
+#define OP_RBIT(I,S)   memr_## S (vm, OP_PNTR(I)) 
+#define OP_WBIT(I,S,V) memw_## S (vm, OP_PNTR(I), V)
+
+#define OP_DECL(S,N) u ## S N
+
+#define OP_FCHK             \
+  if (vm_fchk(vm, VM_EF)) { \
+    return RES_ERR;         \
+  }
+
+#define OP_FLGZ(V)      \
+  if ((V) == 0) {       \
+    vm_flag(vm, VM_EF); \
+  }
 
 #define OP_DATA_CHECK(T, I, M, O, V) \
   case T:                            \
+    if (OP_APTR(I)) {                \
+      (O) = OP_RBIT(I, T) == V;      \
+      OP_FCHK                        \
+      break;                         \
+    }                                \
     (O) = OP_DATA(I).M == V;         \
     break;
 
@@ -69,13 +108,25 @@ enum op_res {
   }                                  \
 }
 
-#define UNOP_CASE(T, M, O)         \
-  case T:                          \
-    OP_DATA(0).M = O OP_DATA(0).M; \
-    if (OP_DATA(0).M == 0) {       \
-      vm_flag(vm, VM_ZF);          \
-    }                              \
-    break; 
+#define UNOP_CASE(T, M, O)            \
+  case T: {                           \
+    if (!OP_DEST(0)) {                \
+      vm_warn(vm, "unused result");   \
+      break;                          \
+    }                                 \
+    if (OP_APTR(0)) {                 \
+      OP_DECL(T, _0) = OP_RBIT(0, T); \
+      OP_FCHK                         \
+      OP_FLGZ(_0 = O _0);             \
+      OP_WBIT(0, T, _0);              \
+      OP_FCHK                         \
+      break;                          \
+    }                                 \
+    vm_ptr _a = OP_ADDR(0);           \
+    OP_FLGZ(_a = O _a);               \
+    OP_ADDL(0) = (u8*) _a;            \
+    break;                            \
+  }
 
 #define UNOP_CASE_BYTE(O) \
   UNOP_CASE(OPT_BYTE, byte, O)
@@ -105,13 +156,46 @@ enum op_res {
 #define BINOP_PAIR \
   OPT_PAIR(OP_TYPE(0), OP_TYPE(1))
 
-#define BINOP_PAIR_CASE(T, M, O)  \
-  case OPT_PAIR(T, T): {          \
-    OP_DATA(0).M O ## = OP_DATA(1).M; \
-    if (OP_DATA(0).M == 0) {      \
-      vm_flag(vm, VM_ZF);         \
-    }                             \
-    break;                        \
+#define BINOP_PAIR_CASE(T, M, O)      \
+  case OPT_PAIR(T, T): {              \
+    if (!OP_DEST(0)) {                \
+      vm_warn(vm, "unused result");   \
+      break;                          \
+    }                                 \
+    if (OP_APTR(0)) {                 \
+      OP_DECL(T, _0) = OP_RBIT(0, T); \
+      OP_FCHK                         \
+      OP_DECL(T, _1);                 \
+      if (OP_APTR(1)) {               \
+        _1 = OP_RBIT(1, T);           \
+        OP_FCHK                       \
+      } else {                        \
+        if (OP_AADR(1)) {             \
+          _1 = OP_ADDR(1);            \
+        } else {                      \
+          _1 = OP_DATA(1).M;          \
+        }                             \
+      }                               \
+      OP_FLGZ(_0 O ## = _1);          \
+      OP_WBIT(0, T, _0);              \
+      OP_FCHK                         \
+    } else {                          \
+      vm_ptr _a = OP_ADDR(0);         \
+      vm_ptr _b = 0;                  \
+      if (OP_APTR(1)) {               \
+        _b = OP_RBIT(1, T);           \
+        OP_FCHK                       \
+      } else {                        \
+        if (OP_AADR(1)) {             \
+          _b = OP_ADDR(1);            \
+        } else {                      \
+          _b = OP_DATA(1).M;          \
+        }                             \
+      }                               \
+      OP_FLGZ(_a O ## = _b);          \
+      OP_ADDL(0) = (u8*) _a;          \
+    }                                 \
+    break;                            \
   }
 
 #define BINOP_PAIR_BYTE(O) \
@@ -366,9 +450,9 @@ extern inline OP_FUNC op_dbg (OP_ARGS)
   printf("BP = %p\n", (void *) vm->bp);
   printf("SP = %p\n", (void *) vm->sp);
   printf("EP = %p\n", (void *) vm->ep);
-  printf("R0 = { %d, " FMT_REG " }\n", vm->r0.type, vm->r0.data.value);
-  printf("R1 = { %d, " FMT_REG " }\n", vm->r1.type, vm->r1.data.value);
-  printf("R2 = { %d, " FMT_REG " }\n", vm->r2.type, vm->r2.data.value);
+  printf("R0 = { " FMT_REG " }\n", vm->r0.value);
+  printf("R1 = { " FMT_REG " }\n", vm->r1.value);
+  printf("R2 = { " FMT_REG " }\n", vm->r2.value);
   printf("ST = ");
 
   u32 bit = 0x80000000ul;

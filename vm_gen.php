@@ -4,15 +4,19 @@
 declare(strict_types=1);
 namespace HelloVM;
 
-const OPS = [
-    'NOP', 'SUB', 'ADD', 'MUL', 'DIV',
-    'MOD', 'POS', 'NEG', 'AND', 'OR',
-    'XOR', 'NOT', 'MOV', 'CALL', 'RET',
-    'PUSH', 'POP', 'CLS', 'DBG', 'END',
-];
+
+$ops = [];
+$vmh = file_get_contents(__dir__ . '/vm.h');
+if (preg_match_all('/\s+OPC_(\w+)(?=,|\s=)/', $vmh, $mth)) {
+    $ops = $mth[1];
+}
+
+if (empty($ops)) {
+    exit("unable to parse opcodes");
+}
 
 $out = fopen(__dir__ . '/vm.inc', 'w+');
-foreach (OPS as $op) {
+foreach ($ops as $op) {
     $u = strtoupper($op);
     $l = strtolower($op);
     fwrite($out, "case OPC_{$u}:\n  rs = op_{$l}(vm, op);\n  break;\n");

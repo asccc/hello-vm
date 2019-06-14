@@ -34,5 +34,5 @@ test: all
 
 clean:
 	rm -f $(PROG)
-	rm *.o
+	rm -f *.o
 	rm -f vm.inc
