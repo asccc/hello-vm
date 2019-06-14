@@ -108,6 +108,51 @@ enum op_res {
   }                                  \
 }
 
+#define PXOP_CASE(T, O)               \
+  case T: {                           \
+    if (!OP_DEST(0)) {                \
+      vm_warn(vm, "unused result");   \
+      break;                          \
+    }                                 \
+    if (OP_APTR(0)) {                 \
+      OP_DECL(T, _0) = OP_RBIT(0, T); \
+      OP_FCHK                         \
+      OP_FLGZ(O _0);                  \
+      OP_WBIT(0, T, _0);              \
+      OP_FCHK                         \
+      break;                          \
+    }                                 \
+    vm_ptr _a = OP_ADDR(0);           \
+    OP_FLGZ(O _a);                    \
+    OP_ADDL(0) = (u8*) _a;            \
+    break;                            \
+  }
+
+#define PXOP_CASE_BYTE(O) \
+  PXOP_CASE(OPT_BYTE, O)
+#define PXOP_CASE_WORD(O) \
+  PXOP_CASE(OPT_WORD, O)
+#define PXOP_CASE_DWORD(O) \
+  PXOP_CASE(OPT_DWORD, O)
+
+#if VM_USE_QWORD
+  #define PXOP_CASE_QWORD(O) \
+    PXOP_CASE(OPT_QWORD, O)
+#else
+  #define PXOP_CASE_QWORD()
+#endif
+
+#define PXOP(O)         \
+  switch (OP_TYPE(0)) { \
+    PXOP_CASE_BYTE(O)   \
+    PXOP_CASE_WORD(O)   \
+    PXOP_CASE_DWORD(O)  \
+    PXOP_CASE_QWORD(O)  \
+    default:            \
+      return RES_ERR;   \
+  }                     \
+  return RES_NXT;
+
 #define UNOP_CASE(T, M, O)            \
   case T: {                           \
     if (!OP_DEST(0)) {                \
@@ -377,6 +422,28 @@ extern inline OP_FUNC op_pos (OP_ARGS)
 extern inline OP_FUNC op_not (OP_ARGS)
 {
   UNOP(~)
+}
+
+/**
+ * handler for the INC opcode
+ * 
+ * @param the virtual machine struct
+ * @param the virtual opcode
+ */
+extern inline OP_FUNC op_inc (OP_ARGS)
+{
+  PXOP(++)
+}
+
+/**
+ * handler for the DEC opcode
+ * 
+ * @param the virtual machine struct
+ * @param the virtual opcode
+ */
+extern inline OP_FUNC op_dec (OP_ARGS)
+{
+  PXOP(--)
 }
 
 /**

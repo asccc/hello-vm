@@ -24,6 +24,17 @@ int main (void)
       }
     },
     { .code = OPC_DBG },
+    {
+      .code = OPC_INC,
+      .argv = {
+        {
+          .flag = ARG_ADR,
+          .type = OPT_QWORD,
+          .data.addr = &vm.sp
+        }
+      }
+    },
+    { .code = OPC_DBG },
     { .code = OPC_END }
   };
 

@@ -52,6 +52,8 @@ enum vm_opc {
   OPC_OR,
   OPC_XOR,
   OPC_NOT,
+  OPC_INC,
+  OPC_DEC,
   OPC_MOV,
   OPC_CALL,
   OPC_RET,

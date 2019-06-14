@@ -34,6 +34,12 @@ case OPC_XOR:
 case OPC_NOT:
   rs = op_not(vm, op);
   break;
+case OPC_INC:
+  rs = op_inc(vm, op);
+  break;
+case OPC_DEC:
+  rs = op_dec(vm, op);
+  break;
 case OPC_MOV:
   rs = op_mov(vm, op);
   break;
