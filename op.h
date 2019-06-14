@@ -20,6 +20,10 @@ static inline void memw_32 (struct vm*, u8*, u32);
   static inline void memw_64 (struct vm*, u8*, u64);
 #endif
 
+/* implemented in vm.c */
+static inline vm_ptr memr_ar (struct vm*, u8*);
+static inline void   memw_ar (struct vm*, u8*, vm_ptr);
+
 #ifndef NDEBUG         
   #include <stdio.h>
 #endif
@@ -43,18 +47,34 @@ enum op_res {
 #define OP_DATA(I) OP_ARGV(I)->data
 #define OP_PNTR(I) OP_DATA(I).pntr
 
-#define OP_ADDR(I) ((vm_ptr)*(OP_DATA(I).addr))
-#define OP_ADDL(I) (*(OP_DATA(I).addr))
+#define OP_REGR(I) (OP_DATA(I).reg)
 
 #define OP_FLAG(I) OP_ARGV(I)->flag
 #define OP_ALIT(I) (OP_FLAG(I) & ARG_LIT)
 #define OP_APTR(I) (OP_FLAG(I) & ARG_PTR)
-#define OP_AADR(I) (OP_FLAG(I) & ARG_ADR)
 
-#define OP_DEST(I) (OP_APTR(I) || OP_AADR(I))
+#define OP_ARAD(I) (OP_FLAG(I) & ARG_RAD)
+#define OP_ARPT(I) (OP_FLAG(I) & ARG_RPT)
+
+#define OP_AREG(I) ( \
+  OP_ARAD(I) ||      \
+  OP_ARPT(I)         \
+)
+
+#define OP_DEST(I) ( \
+  OP_APTR(I) ||      \
+  OP_ARAD(I) ||      \
+  OP_ARPT(I)         \
+)
 
 #define OP_RBIT(I,S)   memr_## S (vm, OP_PNTR(I)) 
 #define OP_WBIT(I,S,V) memw_## S (vm, OP_PNTR(I), V)
+
+#define OP_RREG(P,S)   memr_## S (vm, P)
+#define OP_WREG(P,S,V) memw_## S (vm, P, V)
+
+#define OP_RADR(I)   memr_ar (vm, OP_PNTR(I))
+#define OP_WADR(I,V) memw_ar (vm, OP_PNTR(I), V)
 
 #define OP_DECL(S,N) u ## S N
 
@@ -65,11 +85,41 @@ enum op_res {
 
 #define OP_FLGZ(V)      \
   if ((V) == 0) {       \
-    vm_flag(vm, VM_EF); \
+    vm_flag(vm, VM_ZF); \
   }
 
 #define OP_DATA_CHECK(T, I, M, O, V) \
   case T:                            \
+    if (OP_ARPT(I)) {                \
+      u8 *_r;                        \
+      switch (OP_REGR(I)) {          \
+        case REG_SP:                 \
+          _r = vm->sp;               \
+          break;                     \
+        case REG_BP:                 \
+          _r = vm->bp;               \
+          break;                     \
+        default:                     \
+          return RES_HLT;            \
+      }                              \
+      (O) = OP_RREG(_r, T) == V;     \
+      break;                         \
+    }                                \
+    if (OP_ARAD(I)) {                \
+      vm_ptr _p;                     \
+      switch (OP_REGR(I)) {          \
+        case REG_SP:                 \
+          _p = (vm_ptr) &vm->sp;     \
+          break;                     \
+        case REG_BP:                 \
+          _p = (vm_ptr) &vm->bp;     \
+          break;                     \
+        default:                     \
+          return RES_HLT;            \
+      }                              \
+      (O) = _p == V;                 \
+      break;                         \
+    }                                \
     if (OP_APTR(I)) {                \
       (O) = OP_RBIT(I, T) == V;      \
       OP_FCHK                        \
@@ -108,24 +158,53 @@ enum op_res {
   }                                  \
 }
 
-#define PXOP_CASE(T, O)               \
-  case T: {                           \
-    if (!OP_DEST(0)) {                \
-      vm_warn(vm, "unused result");   \
-      break;                          \
-    }                                 \
-    if (OP_APTR(0)) {                 \
-      OP_DECL(T, _0) = OP_RBIT(0, T); \
-      OP_FCHK                         \
-      OP_FLGZ(O _0);                  \
-      OP_WBIT(0, T, _0);              \
-      OP_FCHK                         \
-      break;                          \
-    }                                 \
-    vm_ptr _a = OP_ADDR(0);           \
-    OP_FLGZ(O _a);                    \
-    OP_ADDL(0) = (u8*) _a;            \
-    break;                            \
+#define PXOP_CASE(T, O)                \
+  case T: {                            \
+    if (!OP_DEST(0)) {                 \
+      vm_warn(vm, "unused result");    \
+      break;                           \
+    }                                  \
+    if (OP_ARPT(0)) {                  \
+      u8 *_r;                          \
+      switch (OP_REGR(0)) {            \
+        case REG_SP:                   \
+          _r = vm->sp;                 \
+          break;                       \
+        case REG_BP:                   \
+          _r = vm->bp;                 \
+          break;                       \
+        default:                       \
+          return RES_HLT;              \
+      }                                \
+      OP_DECL(T, _0) = OP_RREG(_r, T); \
+      OP_FLGZ(O _0);                   \
+      OP_WREG(_r, T, _0);              \
+      break;                           \
+    }                                  \
+    if (OP_ARAD(0)) {                  \
+      u8 **_r;                         \
+      switch (OP_REGR(0)) {            \
+        case REG_SP:                   \
+          _r = &vm->sp;                \
+          break;                       \
+        case REG_BP:                   \
+          _r = &vm->bp;                \
+          break;                       \
+        default:                       \
+          return RES_HLT;              \
+      }                                \
+      OP_FLGZ(O *_r);                  \
+      break;                           \
+    }                                  \
+    if (OP_APTR(0)) {                  \
+      OP_DECL(T, _0) = OP_RBIT(0, T);  \
+      OP_FCHK                          \
+      OP_FLGZ(O _0);                   \
+      OP_WBIT(0, T, _0);               \
+      OP_FCHK                          \
+      break;                           \
+    }                                  \
+    return RES_ERR;                    \
   }
 
 #define PXOP_CASE_BYTE(O) \
@@ -153,24 +232,53 @@ enum op_res {
   }                     \
   return RES_NXT;
 
-#define UNOP_CASE(T, M, O)            \
-  case T: {                           \
-    if (!OP_DEST(0)) {                \
-      vm_warn(vm, "unused result");   \
-      break;                          \
-    }                                 \
-    if (OP_APTR(0)) {                 \
-      OP_DECL(T, _0) = OP_RBIT(0, T); \
-      OP_FCHK                         \
-      OP_FLGZ(_0 = O _0);             \
-      OP_WBIT(0, T, _0);              \
-      OP_FCHK                         \
-      break;                          \
-    }                                 \
-    vm_ptr _a = OP_ADDR(0);           \
-    OP_FLGZ(_a = O _a);               \
-    OP_ADDL(0) = (u8*) _a;            \
-    break;                            \
+#define UNOP_CASE(T, M, O)                \
+  case T: {                               \
+    if (!OP_DEST(0)) {                    \
+      vm_warn(vm, "unused result");       \
+      break;                              \
+    }                                     \
+    if (OP_AREG(0)) {                     \
+      u8 *_r;                             \
+      switch (OP_REGR(0)) {               \
+        case REG_SP:                      \
+          _r = vm->sp;                    \
+          break;                          \
+        case REG_BP:                      \
+          _r = vm->bp;                    \
+          break;                          \
+        default:                          \
+          return RES_HLT;                 \
+      }                                   \
+      OP_DECL(T, _0) = OP_RREG(_r, T);    \
+      OP_FLGZ(_0 = O _0);                 \
+      OP_WREG(_r, T, _0);                 \
+      break;                              \
+    }                                     \
+    if (OP_ARAD(0)) {                     \
+      u8 **_r;                            \
+      switch (OP_REGR(0)) {               \
+        case REG_SP:                      \
+          _r = &vm->sp;                   \
+          break;                          \
+        case REG_BP:                      \
+          _r = &vm->bp;                   \
+          break;                          \
+        default:                          \
+          return RES_HLT;                 \
+      }                                   \
+      OP_FLGZ(*_r = (u8*) O (vm_ptr)*_r); \
+      break;                              \
+    }                                     \
+    if (OP_APTR(0)) {                     \
+      OP_DECL(T, _0) = OP_RBIT(0, T);     \
+      OP_FCHK                             \
+      OP_FLGZ(_0 = O _0);                 \
+      OP_WBIT(0, T, _0);                  \
+      OP_FCHK                             \
+      break;                              \
+    }                                     \
+    return RES_ERR;                       \
   }
 
 #define UNOP_CASE_BYTE(O) \
@@ -201,46 +309,154 @@ enum op_res {
 #define BINOP_PAIR \
   OPT_PAIR(OP_TYPE(0), OP_TYPE(1))
 
-#define BINOP_PAIR_CASE(T, M, O)      \
-  case OPT_PAIR(T, T): {              \
-    if (!OP_DEST(0)) {                \
-      vm_warn(vm, "unused result");   \
-      break;                          \
-    }                                 \
-    if (OP_APTR(0)) {                 \
-      OP_DECL(T, _0) = OP_RBIT(0, T); \
-      OP_FCHK                         \
-      OP_DECL(T, _1);                 \
-      if (OP_APTR(1)) {               \
-        _1 = OP_RBIT(1, T);           \
-        OP_FCHK                       \
-      } else {                        \
-        if (OP_AADR(1)) {             \
-          _1 = OP_ADDR(1);            \
-        } else {                      \
-          _1 = OP_DATA(1).M;          \
-        }                             \
-      }                               \
-      OP_FLGZ(_0 O ## = _1);          \
-      OP_WBIT(0, T, _0);              \
-      OP_FCHK                         \
-    } else {                          \
-      vm_ptr _a = OP_ADDR(0);         \
-      vm_ptr _b = 0;                  \
-      if (OP_APTR(1)) {               \
-        _b = OP_RBIT(1, T);           \
-        OP_FCHK                       \
-      } else {                        \
-        if (OP_AADR(1)) {             \
-          _b = OP_ADDR(1);            \
-        } else {                      \
-          _b = OP_DATA(1).M;          \
-        }                             \
-      }                               \
-      OP_FLGZ(_a O ## = _b);          \
-      OP_ADDL(0) = (u8*) _a;          \
-    }                                 \
-    break;                            \
+#define BINOP_PAIR_CASE(T, M, O)        \
+  case OPT_PAIR(T, T): {                \
+    if (!OP_DEST(0)) {                  \
+      vm_warn(vm, "unused result");     \
+      break;                            \
+    }                                   \
+    if (OP_ARPT(0)) {                   \
+      u8 *_r0;                          \
+      switch (OP_REGR(0)) {             \
+        case REG_SP:                    \
+          _r0 = vm->sp;                 \
+          break;                        \
+        case REG_BP:                    \
+          _r0 = vm->bp;                 \
+          break;                        \
+        default:                        \
+          return RES_HLT;               \
+      }                                 \
+      OP_DECL(T, _0) = OP_RREG(_r0, T); \
+      OP_DECL(T, _1);                   \
+      if (OP_APTR(1)) {                 \
+        _1 = OP_RBIT(1, T);             \
+        OP_FCHK                         \
+      } else if (OP_ARPT(1)) {          \
+        u8 *_r1;                        \
+        switch (OP_REGR(1)) {           \
+          case REG_SP:                  \
+            _r1 = vm->sp;               \
+            break;                      \
+          case REG_BP:                  \
+            _r1 = vm->bp;               \
+            break;                      \
+          default:                      \
+            return RES_HLT;             \
+        }                               \
+        _1 = OP_RREG(_r1, T);           \
+      } else if (OP_ARAD(1)) {          \
+        u8 **_r1;                       \
+        switch (OP_REGR(1)) {           \
+          case REG_SP:                  \
+            _r1 = &vm->sp;              \
+            break;                      \
+          case REG_BP:                  \
+            _r1 = &vm->bp;              \
+            break;                      \
+          default:                      \
+            return RES_HLT;             \
+        }                               \
+        _1 = (vm_ptr) *_r1;             \
+      } else {                          \
+        _1 = OP_DATA(1).M;              \
+      }                                 \
+      OP_FLGZ(_0 O ## = _1);            \
+      OP_WREG(_r0, T, _0);              \
+      break;                            \
+    }                                   \
+    if (OP_ARAD(0)) {                   \
+      u8 **_r0;                         \
+      vm_ptr _0;                        \
+      vm_ptr _1;                        \
+      switch (OP_REGR(0)) {             \
+        case REG_SP:                    \
+          _r0 = &vm->sp;                \
+          break;                        \
+        case REG_BP:                    \
+          _r0 = &vm->bp;                \
+          break;                        \
+        default:                        \
+          return RES_HLT;               \
+      }                                 \
+      _0 = (vm_ptr)*_r0;                \
+      if (OP_APTR(1)) {                 \
+        _1 = OP_RADR(1);                \
+        OP_FCHK                         \
+      } else if (OP_ARPT(1)) {          \
+        u8 *_r1;                        \
+        switch (OP_REGR(1)) {           \
+          case REG_SP:                  \
+            _r1 = vm->sp;               \
+            break;                      \
+          case REG_BP:                  \
+            _r1 = vm->bp;               \
+            break;                      \
+          default:                      \
+            return RES_HLT;             \
+        }                               \
+        _1 = OP_RREG(_r1, T);           \
+      } else if (OP_ARAD(1)) {          \
+        u8 **_r1;                       \
+        switch (OP_REGR(1)) {           \
+          case REG_SP:                  \
+            _r1 = &vm->sp;              \
+            break;                      \
+          case REG_BP:                  \
+            _r1 = &vm->bp;              \
+            break;                      \
+          default:                      \
+            return RES_HLT;             \
+        }                               \
+        _1 = (vm_ptr)*_r1;              \
+      } else {                          \
+        _1 = OP_DATA(1).M;              \
+      }                                 \
+      OP_FLGZ(_0 O ## = _1);            \
+      *_r0 = (u8*) _0;                  \
+      break;                            \
+    }                                   \
+    if (OP_APTR(0)) {                   \
+      OP_DECL(T, _0) = OP_RBIT(0, T);   \
+      OP_FCHK                           \
+      OP_DECL(T, _1);                   \
+      if (OP_APTR(1)) {                 \
+        _1 = OP_RBIT(1, T);             \
+        OP_FCHK                         \
+      } else if (OP_ARPT(1)) {          \
+        u8 *_r;                         \
+        switch (OP_REGR(1)) {           \
+          case REG_SP:                  \
+            _r = vm->sp;                \
+            break;                      \
+          case REG_BP:                  \
+            _r = vm->bp;                \
+            break;                      \
+          default:                      \
+            return RES_HLT;             \
+        }                               \
+        _1 = OP_RREG(_r, T);            \
+      } else if (OP_ARAD(1)) {          \
+        u8 **_r2;                       \
+        switch (OP_REGR(1)) {           \
+          case REG_SP:                  \
+            _r2 = &vm->sp;              \
+            break;                      \
+          case REG_BP:                  \
+            _r2 = &vm->bp;              \
+            break;                      \
+          default:                      \
+            return RES_HLT;             \
+        }                               \
+        _1 = (vm_ptr) *_r2;             \
+      } else {                          \
+        _1 = OP_DATA(1).M;              \
+      }                                 \
+      OP_FLGZ(_0 O ## = _1);            \
+      OP_WBIT(0, T, _0);                \
+      OP_FCHK                           \
+    }                                   \
+    return RES_ERR;                     \
   }
 
 #define BINOP_PAIR_BYTE(O) \
@@ -487,6 +703,13 @@ extern inline OP_FUNC op_cls (OP_ARGS)
   return RES_HLT;
 }
 
+extern inline OP_FUNC op_pnt (OP_ARGS)
+{
+  extern int printf(const char *, ...);
+  printf("%s\n", vm->sp);
+  return RES_NXT;
+}
+
 /**
  * handler for the DBG opcode
  * 
@@ -529,6 +752,16 @@ extern inline OP_FUNC op_dbg (OP_ARGS)
   } while (bit > 0);
 
   puts("");
+
+  for (u32 i = 0; i < VM_STACK_SIZE; ++i) {
+    if (i > 0 && i % 16 == 0) {
+      puts("");
+    }
+    printf("%d ", vm->mem[i]);
+  }
+
+  puts("");
+  printf("CS (*SP) = %s\n", vm->sp);
 
   return RES_NXT;
 

@@ -74,6 +74,7 @@ VM_CALL void vm_exec (struct vm *vm, struct vm_op *ops)
   vm->ep = ops;
   for (struct vm_op *op;;) {
     op = vm->ep;
+    rs = RES_END;
     switch (op->code) {
       #include "vm.inc"
     }
@@ -119,6 +120,10 @@ VM_CALL bool vm_args (struct vm *vm, const char *fmt, ...)
  */
 static inline u8 memr_8 (struct vm *vm, u8 *mp)
 {
+#ifndef NDEBUG
+  printf("READ AT ADDRESS %p\n", (void *) (mp + 0));
+#endif
+
   return *mp;
 }
 
@@ -131,9 +136,14 @@ static inline u8 memr_8 (struct vm *vm, u8 *mp)
  */
 static inline u16 memr_16 (struct vm *vm, u8 *mp)
 {
+#ifndef NDEBUG
+  printf("READ AT ADDRESS %p\n", (void *) (mp + 1));
+  printf("READ AT ADDRESS %p\n", (void *) (mp + 0));
+#endif
+
   return (
-    (((u16)*(mp + 0)) <<  8) |
-    (((u16)*(mp + 1))      )
+    (((u16)*(mp + 1)) <<  8) |
+    (((u16)*(mp + 0))      )
   );
 }
 
@@ -146,36 +156,52 @@ static inline u16 memr_16 (struct vm *vm, u8 *mp)
  */
 static inline u32 memr_32 (struct vm *vm, u8 *mp)
 {
+#ifndef NDEBUG
+  printf("READ AT ADDRESS %p\n", (void *) (mp + 3));
+  printf("READ AT ADDRESS %p\n", (void *) (mp + 2));
+  printf("READ AT ADDRESS %p\n", (void *) (mp + 1));
+  printf("READ AT ADDRESS %p\n", (void *) (mp + 0));
+#endif
+
   return (
-    (((u32)*(mp + 0)) << 24) |
-    (((u32)*(mp + 1)) << 16) |
-    (((u32)*(mp + 2)) <<  8) |
-    (((u32)*(mp + 3))      )
+    (((u32)*(mp + 3)) << 24) |
+    (((u32)*(mp + 2)) << 16) |
+    (((u32)*(mp + 1)) <<  8) |
+    (((u32)*(mp + 0))      )
   );
 }
 
-#if VM_USE_QWORD
-  /**
-   * reads 64 bits from the given memory-pointer
-   * 
-   * @param the virtual-machine struct
-   * @param the memory pointer
-   * @return the value
-   */
-  static inline u64 memr_64 (struct vm *vm, u8 *mp)
-  {
-    return (
-      (((u64)*(mp + 0)) << 56) |
-      (((u64)*(mp + 1)) << 48) |
-      (((u64)*(mp + 2)) << 40) |
-      (((u64)*(mp + 3)) << 32) |
-      (((u64)*(mp + 4)) << 24) |
-      (((u64)*(mp + 5)) << 16) |
-      (((u64)*(mp + 6)) <<  8) |
-      (((u64)*(mp + 7))      )
-    );
-  }
+/**
+ * reads 64 bits from the given memory-pointer
+ * 
+ * @param the virtual-machine struct
+ * @param the memory pointer
+ * @return the value
+ */
+static inline u64 memr_64 (struct vm *vm, u8 *mp)
+{
+#ifndef NDEBUG
+  printf("READ AT ADDRESS %p\n", (void *) (mp + 7));
+  printf("READ AT ADDRESS %p\n", (void *) (mp + 6));
+  printf("READ AT ADDRESS %p\n", (void *) (mp + 5));
+  printf("READ AT ADDRESS %p\n", (void *) (mp + 4));
+  printf("READ AT ADDRESS %p\n", (void *) (mp + 3));
+  printf("READ AT ADDRESS %p\n", (void *) (mp + 2));
+  printf("READ AT ADDRESS %p\n", (void *) (mp + 1));
+  printf("READ AT ADDRESS %p\n", (void *) (mp + 0));
 #endif
+
+  return (
+    (((u64)*(mp + 7)) << 56) |
+    (((u64)*(mp + 6)) << 48) |
+    (((u64)*(mp + 5)) << 40) |
+    (((u64)*(mp + 4)) << 32) |
+    (((u64)*(mp + 3)) << 24) |
+    (((u64)*(mp + 2)) << 16) |
+    (((u64)*(mp + 1)) <<  8) |
+    (((u64)*(mp + 0))      )
+  );
+}
 
 /**
  * writes 8 bits to the given memory-pointer
@@ -186,6 +212,10 @@ static inline u32 memr_32 (struct vm *vm, u8 *mp)
  */
 static inline void memw_8 (struct vm *vm, u8 *mp, u8 mv)
 {
+#ifndef NDEBUG
+  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 0), mv);
+#endif
+
   *mp = mv;
 }
 
@@ -197,7 +227,12 @@ static inline void memw_8 (struct vm *vm, u8 *mp, u8 mv)
  * @param the value to write
  */
 static inline void memw_16 (struct vm *vm, u8 *mp, u16 mv)
-{
+{  
+#ifndef NDEBUG
+  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 0), (u8)((mv >> 8) & 0xff));
+  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 1), (u8)((mv     ) & 0xff));
+#endif
+
   *(mp + 0) = (mv >> 8) & 0xff;
   *(mp + 1) = (mv     ) & 0xff;
 }
@@ -211,29 +246,77 @@ static inline void memw_16 (struct vm *vm, u8 *mp, u16 mv)
  */
 static inline void memw_32 (struct vm *vm, u8 *mp, u32 mv)
 {
+#ifndef NDEBUG
+  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 0), (u8)((mv >> 24) & 0xff));
+  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 1), (u8)((mv >> 16) & 0xff));
+  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 2), (u8)((mv >>  8) & 0xff));
+  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 3), (u8)((mv      ) & 0xff));
+#endif
+
   *(mp + 0) = (mv >> 24) & 0xff;
   *(mp + 1) = (mv >> 16) & 0xff;
   *(mp + 2) = (mv >>  8) & 0xff;
   *(mp + 3) = (mv      ) & 0xff;
 }
 
-#if VM_USE_QWORD
-  /**
-   * writes 64 bits to the given memory-pointer
-   * 
-   * @param the virtual-machine struct
-   * @param the memory pointer
-   * @param the value to write
-   */
-  static inline void memw_64 (struct vm *vm, u8 *mp, u64 mv)
-  {
-    *(mp + 0) = (mv >> 56) & 0xff;
-    *(mp + 1) = (mv >> 48) & 0xff;
-    *(mp + 2) = (mv >> 40) & 0xff;
-    *(mp + 3) = (mv >> 32) & 0xff;
-    *(mp + 4) = (mv >> 24) & 0xff;
-    *(mp + 5) = (mv >> 16) & 0xff;
-    *(mp + 6) = (mv >>  8) & 0xff;
-    *(mp + 7) = (mv      ) & 0xff;
-  }
+/**
+ * writes 64 bits to the given memory-pointer
+ * 
+ * @param the virtual-machine struct
+ * @param the memory pointer
+ * @param the value to write
+ */
+static inline void memw_64 (struct vm *vm, u8 *mp, u64 mv)
+{
+#ifndef NDEBUG
+  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 0), (u8)((mv >> 56) & 0xff));
+  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 1), (u8)((mv >> 48) & 0xff));
+  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 2), (u8)((mv >> 40) & 0xff));
+  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 3), (u8)((mv >> 32) & 0xff));
+  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 4), (u8)((mv >> 24) & 0xff));
+  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 5), (u8)((mv >> 16) & 0xff));
+  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 6), (u8)((mv >>  8) & 0xff));
+  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 7), (u8)((mv      ) & 0xff));
 #endif
+
+  *(mp + 0) = (mv >> 56) & 0xff;
+  *(mp + 1) = (mv >> 48) & 0xff;
+  *(mp + 2) = (mv >> 40) & 0xff;
+  *(mp + 3) = (mv >> 32) & 0xff;
+  *(mp + 4) = (mv >> 24) & 0xff;
+  *(mp + 5) = (mv >> 16) & 0xff;
+  *(mp + 6) = (mv >>  8) & 0xff;
+  *(mp + 7) = (mv      ) & 0xff;
+}
+
+/**
+ * reads a address
+ * 
+ * @param the virtual-machine struct
+ * @param the memory pointer
+ * @return the value
+ */
+static inline vm_ptr memr_ar (struct vm *vm, u8 *mp)
+{
+#ifdef _x86_64
+  return memr_64(vm, mp);
+#else
+  return memr_32(vm, mp);
+#endif
+}
+
+/**
+ * writes a address
+ * 
+ * @param the virtual-machine struct
+ * @param the memory pointer
+ * @param the value to write
+ */
+static inline void memw_ar (struct vm *vm, u8 *mp, vm_ptr mv)
+{
+#ifdef _x86_64
+  memw_64(vm, mp, mv);
+#else
+  memw_32(vm, mp, mv);
+#endif
+}

@@ -61,6 +61,9 @@ case OPC_CLS:
 case OPC_DBG:
   rs = op_dbg(vm, op);
   break;
+case OPC_PNT:
+  rs = op_pnt(vm, op);
+  break;
 case OPC_END:
   rs = op_end(vm, op);
   break;

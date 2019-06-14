@@ -13,7 +13,7 @@
 #define VM_FUNC(ID) VM_ATTR void VM_NAME(ID) (struct vm *vm)
 
 #ifndef VM_STACK_SIZE
-  #define VM_STACK_SIZE 4096
+  #define VM_STACK_SIZE 64
 #endif
 
 #ifndef VM_USE_QWORD
@@ -61,6 +61,7 @@ enum vm_opc {
   OPC_POP,
   OPC_CLS,
   OPC_DBG,
+  OPC_PNT,
   OPC_END,
 };
 
@@ -79,6 +80,11 @@ enum vm_opc {
 #define OPT_ADDR -1
 #define OPT_PAIR(A,B) ((A << 16) | B)
 
+enum vm_reg {
+  REG_SP,
+  REG_BP
+};
+
 /**
  * represents a value
  */
@@ -96,13 +102,14 @@ union vm_val {
   intptr_t value;
 #endif
 
-  u8  *pntr;
-  u8 **addr;
+  enum vm_reg reg;
+  void *pntr;
 };
 
 #define ARG_LIT (1u << 0)
 #define ARG_PTR (1u << 1)
-#define ARG_ADR (1u << 2)
+#define ARG_RAD (1u << 2)
+#define ARG_RPT (1u << 3)
 
 /**
  * represents a opcode argument
