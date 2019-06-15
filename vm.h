@@ -25,7 +25,10 @@
 #endif
 
 struct vm;
-struct vm_op;
+struct vm_opc;
+struct vm_imm;
+
+typedef intptr_t vm_ptr;
 
 #if VM_USE_QWORD
   typedef u64 vm_max;
@@ -33,117 +36,60 @@ struct vm_op;
   typedef u32 vm_max;
 #endif
 
-typedef intptr_t vm_ptr;
-typedef void(*vm_oph)(struct vm*, struct vm_op*);
-
-/**
- * vm opcodes 
- */
-enum vm_opc {
-  OPC_NOP = 0,
-  OPC_SUB,
-  OPC_ADD,
-  OPC_MUL,
-  OPC_DIV,
-  OPC_MOD,
-  OPC_POS,
-  OPC_NEG,
-  OPC_AND,
-  OPC_OR,
-  OPC_XOR,
-  OPC_NOT,
-  OPC_INC,
-  OPC_DEC,
-  OPC_MOV,
-  OPC_CALL,
-  OPC_RET,
-  OPC_PUSH,
-  OPC_POP,
-  OPC_CLS,
-  OPC_DBG,
-  OPC_PNT,
-  OPC_END,
+enum vm_opi {
+  OP_NOP,
+  OP_SUB = 1
 };
 
-/**
- * vm opcode payload kind 
- */
-#define OPT_UNDEF 0
-#define OPT_BYTE  8
-#define OPT_WORD  16
-#define OPT_DWORD 32
-
+enum vm_mod {
+  MOD_BYTE = 1,
+  MOD_WORD,
+  MOD_DWORD,
 #if VM_USE_QWORD
-  #define OPT_QWORD 64
+  MOD_QWORD,
 #endif
-
-#define OPT_ADDR -1
-#define OPT_PAIR(A,B) ((A << 16) | B)
-
-enum vm_reg {
-  REG_SP,
-  REG_BP
 };
 
-/**
- * represents a value
- */
-union vm_val {
-  /* literal values */
-  u8 byte;
-  u16 word;
-  u32 dword;
-
-#if VM_USE_QWORD
-  u64 qword;
-#endif
-
-#ifndef NDEBUG
-  intptr_t value;
-#endif
-
-  enum vm_reg reg;
-  void *pntr;
+struct vm_imm {
+  u8 size;
+  union {
+    u8 byte;
+    u16 word;
+    u32 dword;
+  #if VM_USE_QWORD
+    u64 qword;
+  #endif
+  } data;
 };
 
-#define ARG_LIT (1u << 0)
-#define ARG_PTR (1u << 1)
-#define ARG_RAD (1u << 2)
-#define ARG_RPT (1u << 3)
+enum vm_aty {
+  ARG_NIL = 0,
+  ARG_REG,
+  ARG_OFF,
+  ARG_IMM
+};
 
-/**
- * represents a opcode argument
- */
+#define EXT_END 0
+#define EXT_ARG 1
+#define EXT_IMM 2
+
 struct vm_arg {
-  u32 type;
-  u32 flag;
-  union vm_val data;
+  enum vm_aty type;
+  u32 reg;
+  u32 off;
 };
 
-/**
- * represents a full opcode instruction
- */
-struct vm_op {
-  enum vm_opc code;
-  u32 argc;
-  struct vm_arg argv[2];
+struct vm_opc {
+  enum vm_mod mode;
+  u32 code;
+  struct vm_arg args[2];
 };
-
-#define VM_EF (1u << 0)
-#define VM_ZF (1u << 1)
 
 /**
  * virtual machine struct
  */
 struct vm {
-  u32 st;
-  struct vm_op *ep;
-  union vm_val r0;
-  union vm_val r1;
-  union vm_val r2;
-  u8 *bp;
-  u8 *sp;
-  u8 *mem;
+  u32 pc;
 };
 
 /**
@@ -191,7 +137,7 @@ extern VM_CALL void vm_free (struct vm *);
  * @param  the virtual machine struct
  * @param  the opcodes to execute
  */
-extern VM_CALL void vm_exec (struct vm *, struct vm_op *);
+extern VM_CALL void vm_exec (struct vm *, u8*);
 
 /**
  * fetches arguments from the current stack-frame

@@ -1,5 +1,7 @@
 #include "vm.h"
 #include "mem.h"
+#include "run.h"
+
 #include "op.h"
 
 #include <stddef.h>
@@ -8,22 +10,35 @@
 #include <string.h>
 #include <assert.h>
 
+#define READ_ARGS         \
+  struct vm *vm, u8 *ops, \
+  struct vm_opc *opc,     \
+  struct vm_imm *imm
+
+#define EVAL_ARGS     \
+  struct vm *vm,      \
+  struct vm_opc *opc, \
+  struct vm_imm *imm
+
+/** reads raw memory */
+static bool read_mem (struct vm*, u8*, szt, void*);
+
+/** reads a opcode */
+static bool read_opc (READ_ARGS);
+/** reads a immediate */
+static bool read_imm (READ_ARGS);
+
+/** debug opcode */
+static void dump_opc (struct vm_opc *);
+/** debug immediate */
+static void dump_imm (struct vm_imm *);
+
 /**
  * {@inheritdoc}
  */
 VM_CALL void vm_init (struct vm *vm)
 {
   assert(vm != 0);
-
-  vm->mem = mem_aodt(VM_STACK_SIZE);
-  vm->sp = vm->mem + VM_STACK_SIZE;
-  vm->bp = vm->mem;
-  vm->ep = 0;
-  vm->st = 0;
-
-  memset(&(vm->r0), 0, sizeof(vm->r0));
-  memset(&(vm->r1), 0, sizeof(vm->r1));
-  memset(&(vm->r2), 0, sizeof(vm->r2));
 }
 
 /**
@@ -31,7 +46,7 @@ VM_CALL void vm_init (struct vm *vm)
  */
 VM_CALL void vm_flag (struct vm *vm, u32 flag)
 {
-  vm->st |= flag;
+  
 }
 
 /**
@@ -39,7 +54,7 @@ VM_CALL void vm_flag (struct vm *vm, u32 flag)
  */
 VM_CALL bool vm_fchk (struct vm *vm, u32 flag)
 {
-  return (vm->st & flag) == flag;
+  return false;
 }
 
 /**
@@ -58,44 +73,48 @@ VM_CALL void vm_free (struct vm *vm)
 {
   assert(vm != 0);
 
-  mem_free(vm->mem);
 }
 
 /**
  * {@inheritdoc}
  */
-VM_CALL void vm_exec (struct vm *vm, struct vm_op *ops)
+VM_CALL void vm_exec (struct vm *vm, u8 *ops)
 {
   assert(vm != 0);
   assert(ops != 0);
 
-  enum op_res rs;
+  struct vm_opc opc;
+  struct vm_imm imm;
+  enum op_res res = RES_ERR;
+  
+  vm->pc = 0;
+  for (;;) {
+    memset(&opc, 0, sizeof(opc));
+    memset(&imm, 0, sizeof(imm));
 
-  vm->ep = ops;
-  for (struct vm_op *op;;) {
-    op = vm->ep;
-    rs = RES_END;
-    switch (op->code) {
-      #include "vm.inc"
+    if (!read_opc(vm, ops, &opc, &imm)) {
+      vm_warn(vm, "bytecode error");
+      goto end;
     }
-    switch (rs) {
+
+    dump_opc(&opc);
+    dump_imm(&imm);
+    break;
+
+    switch (res) {
       case RES_NXT:
-        vm->ep++;
+        vm->pc++;
         /* fall through */
       case RES_CNT:
         break;
       case RES_ERR:
-        puts("a error occurred");
+        vm_warn(vm, "eval error");
         /* fall through */
       case RES_HLT:
-        puts("execution halted");
-        /* fall through */
-      case RES_END:
         goto end;
-      default:
-        assert(0);
     }
   }
+  
   end:
   return;
 }
@@ -111,212 +130,137 @@ VM_CALL bool vm_args (struct vm *vm, const char *fmt, ...)
   return false;
 }
 
-/**
- * reads 8 bits from the given memory-pointer
- * 
- * @param the virtual-machine struct
- * @param the memory pointer
- * @return the value
- */
-static inline u8 memr_8 (struct vm *vm, u8 *mp)
+/** reads raw memory */
+static bool read_mem (struct vm *vm, u8 *mem, szt sz, void *out)
 {
-#ifndef NDEBUG
-  printf("READ AT ADDRESS %p\n", (void *) (mp + 0));
-#endif
-
-  return *mp;
+  memcpy(out, mem + (vm->pc), sz);
+  vm->pc += sz;
+  return true;
 }
 
-/**
- * reads 16 bits from the given memory-pointer
- * 
- * @param the virtual-machine struct
- * @param the memory pointer
- * @return the value
- */
-static inline u16 memr_16 (struct vm *vm, u8 *mp)
+/** reads a opcode */
+static bool read_opc (READ_ARGS)
 {
-#ifndef NDEBUG
-  printf("READ AT ADDRESS %p\n", (void *) (mp + 1));
-  printf("READ AT ADDRESS %p\n", (void *) (mp + 0));
-#endif
+  u32 bin; // opcode
+  u16 ext; // opcode extra
+  
+  if (!read_mem(vm, ops, 4, &bin)) {
+    // read error, abort
+    return false;
+  }
 
-  return (
-    (((u16)*(mp + 1)) <<  8) |
-    (((u16)*(mp + 0))      )
+  // 4 bits = mode
+  opc->mode = (bin >> 28) & 0xf;
+  // 8 bits = code
+  opc->code = (bin >> 20) & 0xff;
+
+  struct vm_arg 
+    *a0 = opc->args + 0,
+    *a1 = opc->args + 1;
+
+  // 2 bits = arg 0 type
+  a0->type = (bin >> 18) & 0x3;
+  // 4 bits = arg 0 reg
+  a0->reg = (bin >> 14) & 0xf;
+  // 8 bits = arg 0 off
+  a0->off = (bin >> 6) & 0xff;
+
+  // argument 1 type
+  a1->type = (bin >> 4) & 0x3;
+
+  // data indicator
+  switch (bin & 0xf) {
+    case EXT_ARG: break;
+    case EXT_END: return true;
+    case EXT_IMM:
+      return read_imm(vm, ops, opc, imm);
+    default:
+      assert(0);
+      return false;
+  }
+
+  if (!read_mem(vm, ops, 2, &ext)) {
+    // read error, discard and abort
+    return false;
+  }
+
+  // 4 bits = arg 1 reg
+  a1->reg = (ext >> 12) & 0xf;
+  // 8 bits = arg 1 off
+  a1->off = (ext >> 8) & 0xff;
+
+  return true;
+}
+
+#define READ_IMM(N,T) vm, ops, N, &(imm->data.T)
+#define READ_IMM_8  READ_IMM(1, byte)
+#define READ_IMM_16 READ_IMM(2, word)
+#define READ_IMM_32 READ_IMM(4, dword)
+#define READ_IMM_64 READ_IMM(8, qword)
+
+/** reads a immediate */
+static bool read_imm (READ_ARGS)
+{
+  switch (opc->mode) {
+    case MOD_BYTE:
+      return read_mem(READ_IMM_8);
+    case MOD_WORD:
+      return read_mem(READ_IMM_16);
+    case MOD_DWORD:
+      return read_mem(READ_IMM_32);
+  #if VM_USE_QWORD
+    case MOD_QWORD:
+      return read_mem(READ_IMM_64);
+  #endif
+    default:
+      assert(0);
+      return false;
+  }
+}
+
+static void dump_opc (struct vm_opc *opc)
+{
+  printf(
+    "mode: %d\n"
+    "code: %u\n"
+    "args[0] = {\n"
+    "  type: %d\n"
+    "  reg: %u\n"
+    "  off: %u\n"
+    "}\n"
+    "args[1] = {\n"
+    "  type: %d\n"
+    "  reg: %u\n"
+    "  off: %u\n"
+    "}\n",
+    opc->mode,
+    opc->code,
+    opc->args[0].type,
+    opc->args[0].reg,
+    opc->args[0].off,
+    opc->args[1].type,
+    opc->args[1].reg,
+    opc->args[1].off
   );
 }
 
-/**
- * reads 32 bits from the given memory-pointer
- * 
- * @param the virtual-machine struct
- * @param the memory pointer
- * @return the value
- */
-static inline u32 memr_32 (struct vm *vm, u8 *mp)
+static void dump_imm (struct vm_imm *imm)
 {
-#ifndef NDEBUG
-  printf("READ AT ADDRESS %p\n", (void *) (mp + 3));
-  printf("READ AT ADDRESS %p\n", (void *) (mp + 2));
-  printf("READ AT ADDRESS %p\n", (void *) (mp + 1));
-  printf("READ AT ADDRESS %p\n", (void *) (mp + 0));
-#endif
-
-  return (
-    (((u32)*(mp + 3)) << 24) |
-    (((u32)*(mp + 2)) << 16) |
-    (((u32)*(mp + 1)) <<  8) |
-    (((u32)*(mp + 0))      )
+  printf(
+    "imm {\n"
+    "  byte: %u\n"
+    "  word: %u\n"
+    "  dword: %u\n"
+  #if VM_USE_QWORD
+    "  qword: %lu\n"
+  #endif
+    "}\n",
+    imm->data.byte,
+    imm->data.word,
+    imm->data.dword
+  #if VM_USE_QWORD
+    , 
+    imm->data.qword
+  #endif
   );
-}
-
-/**
- * reads 64 bits from the given memory-pointer
- * 
- * @param the virtual-machine struct
- * @param the memory pointer
- * @return the value
- */
-static inline u64 memr_64 (struct vm *vm, u8 *mp)
-{
-#ifndef NDEBUG
-  printf("READ AT ADDRESS %p\n", (void *) (mp + 7));
-  printf("READ AT ADDRESS %p\n", (void *) (mp + 6));
-  printf("READ AT ADDRESS %p\n", (void *) (mp + 5));
-  printf("READ AT ADDRESS %p\n", (void *) (mp + 4));
-  printf("READ AT ADDRESS %p\n", (void *) (mp + 3));
-  printf("READ AT ADDRESS %p\n", (void *) (mp + 2));
-  printf("READ AT ADDRESS %p\n", (void *) (mp + 1));
-  printf("READ AT ADDRESS %p\n", (void *) (mp + 0));
-#endif
-
-  return (
-    (((u64)*(mp + 7)) << 56) |
-    (((u64)*(mp + 6)) << 48) |
-    (((u64)*(mp + 5)) << 40) |
-    (((u64)*(mp + 4)) << 32) |
-    (((u64)*(mp + 3)) << 24) |
-    (((u64)*(mp + 2)) << 16) |
-    (((u64)*(mp + 1)) <<  8) |
-    (((u64)*(mp + 0))      )
-  );
-}
-
-/**
- * writes 8 bits to the given memory-pointer
- * 
- * @param the virtual-machine struct
- * @param the memory pointer
- * @param the value to write
- */
-static inline void memw_8 (struct vm *vm, u8 *mp, u8 mv)
-{
-#ifndef NDEBUG
-  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 0), mv);
-#endif
-
-  *mp = mv;
-}
-
-/**
- * writes 16 bits to the given memory-pointer
- * 
- * @param the virtual-machine struct
- * @param the memory pointer
- * @param the value to write
- */
-static inline void memw_16 (struct vm *vm, u8 *mp, u16 mv)
-{  
-#ifndef NDEBUG
-  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 0), (u8)((mv >> 8) & 0xff));
-  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 1), (u8)((mv     ) & 0xff));
-#endif
-
-  *(mp + 0) = (mv >> 8) & 0xff;
-  *(mp + 1) = (mv     ) & 0xff;
-}
-
-/**
- * writes 32 bits to the given memory-pointer
- * 
- * @param the virtual-machine struct
- * @param the memory pointer
- * @param the value to write
- */
-static inline void memw_32 (struct vm *vm, u8 *mp, u32 mv)
-{
-#ifndef NDEBUG
-  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 0), (u8)((mv >> 24) & 0xff));
-  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 1), (u8)((mv >> 16) & 0xff));
-  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 2), (u8)((mv >>  8) & 0xff));
-  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 3), (u8)((mv      ) & 0xff));
-#endif
-
-  *(mp + 0) = (mv >> 24) & 0xff;
-  *(mp + 1) = (mv >> 16) & 0xff;
-  *(mp + 2) = (mv >>  8) & 0xff;
-  *(mp + 3) = (mv      ) & 0xff;
-}
-
-/**
- * writes 64 bits to the given memory-pointer
- * 
- * @param the virtual-machine struct
- * @param the memory pointer
- * @param the value to write
- */
-static inline void memw_64 (struct vm *vm, u8 *mp, u64 mv)
-{
-#ifndef NDEBUG
-  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 0), (u8)((mv >> 56) & 0xff));
-  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 1), (u8)((mv >> 48) & 0xff));
-  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 2), (u8)((mv >> 40) & 0xff));
-  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 3), (u8)((mv >> 32) & 0xff));
-  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 4), (u8)((mv >> 24) & 0xff));
-  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 5), (u8)((mv >> 16) & 0xff));
-  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 6), (u8)((mv >>  8) & 0xff));
-  printf("WRITE AT ADDRESS %p (%d)\n", (void *) (mp + 7), (u8)((mv      ) & 0xff));
-#endif
-
-  *(mp + 0) = (mv >> 56) & 0xff;
-  *(mp + 1) = (mv >> 48) & 0xff;
-  *(mp + 2) = (mv >> 40) & 0xff;
-  *(mp + 3) = (mv >> 32) & 0xff;
-  *(mp + 4) = (mv >> 24) & 0xff;
-  *(mp + 5) = (mv >> 16) & 0xff;
-  *(mp + 6) = (mv >>  8) & 0xff;
-  *(mp + 7) = (mv      ) & 0xff;
-}
-
-/**
- * reads a address
- * 
- * @param the virtual-machine struct
- * @param the memory pointer
- * @return the value
- */
-static inline vm_ptr memr_ar (struct vm *vm, u8 *mp)
-{
-#ifdef _x86_64
-  return memr_64(vm, mp);
-#else
-  return memr_32(vm, mp);
-#endif
-}
-
-/**
- * writes a address
- * 
- * @param the virtual-machine struct
- * @param the memory pointer
- * @param the value to write
- */
-static inline void memw_ar (struct vm *vm, u8 *mp, vm_ptr mv)
-{
-#ifdef _x86_64
-  memw_64(vm, mp, mv);
-#else
-  memw_32(vm, mp, mv);
-#endif
 }

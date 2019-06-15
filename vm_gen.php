@@ -15,10 +15,16 @@ if (empty($ops)) {
     exit("unable to parse opcodes");
 }
 
-$out = fopen(__dir__ . '/vm.inc', 'w+');
-foreach ($ops as $op) {
-    $u = strtoupper($op);
-    $l = strtolower($op);
-    fwrite($out, "case OPC_{$u}:\n  rs = op_{$l}(vm, op);\n  break;\n");
+function gen_vm($ops, $file)
+{
+    $out = fopen($file, 'w+');
+    foreach ($ops as $op) {
+        $u = strtoupper($op);
+        $l = strtolower($op);
+        fwrite($out, "case OPC_{$u}:\n  rs = op_{$l}(vm, op);\n  break;\n");
+    }
+    fclose($out);
+
 }
-fclose($out);
+
+gen_vm($ops, __dir__ . '/vm.inc');
