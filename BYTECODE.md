@@ -38,22 +38,22 @@ je nach BITMODE.
   - 11 = Immediate
 
 ### 4 bits zur Identifikation des ersten Registers
-  0000 = unused
-  0001 = SP
-  0010 = BP
-  0011 = DS
-  0100 = R0
-  0101 = R1
-  0110 = R2
-  0111 = R3
-  1000 = R4
-  1001 = R5
-  1010 = R6
-  1011 = R7
-  1100 = unused
-  1101 = unused
-  1110 = unused
-  1111 = unused
+  - 0000 = unused
+  - 0001 = SP
+  - 0010 = BP
+  - 0011 = DS
+  - 0100 = R0
+  - 0101 = R1
+  - 0110 = R2
+  - 0111 = R3
+  - 1000 = R4
+  - 1001 = R5
+  - 1010 = R6
+  - 1011 = R7
+  - 1100 = unused
+  - 1101 = unused
+  - 1110 = unused
+  - 1111 = unused
 
 ### 8 bits für ein Offset/Displacement relativ zum übergebenen Register oder Adresse
   Eingelesen wird ein 8bit Integer mit Vorzeichen.
