@@ -1,28 +1,40 @@
+# Bytecode
+
+Ein kompletter Opcode ohne immediate 
+ist 48bits groß.
+
+Je nach Anforderung kann ein Opcode mit 
+einem immediate je nach Modus wachsen.
+
+Die Größe eines OPcodes + Immediate variiert 
+je nach BITMODE.
+
+- 8bit = 32bit opcode + 8bit immediate
+- 16bit = 32bit opcode + 16bit immediate
+- 32bit = 32bit opcode + 32bit immediate
+- 64bit = 32bit opcode + 64bit immediate
+
+## Bitset
+
 4 bits for the mode
   0001 = BYTE
   0010 = WORD
   0011 = DWORD
   0100 = QWORD
   0101 = reserved
-  0111 = reserved
-  1000 = reserved
-  1001 = reserved
-  1010 = reserved
-  1011 = reserved
-  1100 = reserved
-  1101 = reserved
-  1110 = reserved
+  ....
   1111 = reserved
 
 8 bits for the opcode group
   00000000 = reserved
   00000001 = nop 
+  00000010 = sub
   ...
 
 2 bits for the first argument
   00 = no argument
   01 = register
-  10 = register + offset
+  10 = address (passed as imediate)
   11 = immediate
 
 4 bits for the first register
@@ -43,13 +55,13 @@
   1110 = unused
   1111 = unused
 
-8 bits for a offset (sign extended)
-  value is a 7bit number with a sign
+8 bits for a offset
+  value is a 8bit number with a sign
 
 2 bits for the second argument
   00 = no argument
   01 = register 
-  10 = register + offset
+  10 = address (passed as immediate)
   11 = immediate
 
 4 bits data indicator

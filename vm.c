@@ -32,6 +32,8 @@ static bool read_imm (READ_ARGS);
 static void dump_opc (struct vm_opc *);
 /** debug immediate */
 static void dump_imm (struct vm_imm *);
+/** debug vm state */
+static void dump_rvm(struct vm*);
 
 /**
  * {@inheritdoc}
@@ -99,6 +101,7 @@ VM_CALL void vm_exec (struct vm *vm, u8 *ops)
 
     dump_opc(&opc);
     dump_imm(&imm);
+    dump_rvm(vm);
     break;
 
     switch (res) {
@@ -262,5 +265,13 @@ static void dump_imm (struct vm_imm *imm)
     , 
     imm->data.qword
   #endif
+  );
+}
+
+static void dump_rvm (struct vm *vm)
+{
+  printf(
+    "PC = %u\n",
+    vm->pc
   );
 }
