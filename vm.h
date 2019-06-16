@@ -43,10 +43,10 @@ enum vm_opi {
 
 enum vm_mod {
   MOD_BYTE = 1,
-  MOD_WORD,
-  MOD_DWORD,
+  MOD_WORD = 2,
+  MOD_DWORD = 4,
 #if VM_USE_QWORD
-  MOD_QWORD,
+  MOD_QWORD = 8,
 #endif
 };
 
@@ -59,13 +59,14 @@ struct vm_imm {
   #if VM_USE_QWORD
     u64 qword;
   #endif
+    intptr_t addr;
   } data;
 };
 
 enum vm_aty {
   ARG_NIL = 0,
   ARG_REG,
-  ARG_OFF,
+  ARG_PTR,
   ARG_IMM
 };
 

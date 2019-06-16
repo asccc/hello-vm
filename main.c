@@ -10,7 +10,7 @@ int main (void)
 
   u8 ops[42] = {0};
   u8 *ptr = ops;
-  u32 opc = 1078741682;
+  u32 opc = 2149859378;
   u64 imm = 42;
   
   memcpy(ptr + 0, &opc, 4);

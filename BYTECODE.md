@@ -19,11 +19,8 @@ je nach BITMODE.
 ### 4 bits für den gewünschten Modus
   - 0001 = BYTE
   - 0010 = WORD
-  - 0011 = DWORD
-  - 0100 = QWORD
-  - 0101 = reserved
-  - ....
-  - 1111 = reserved
+  - 0100 = DWORD
+  - 1000 = QWORD
 
 ### 8 bits für den gewünschten Opcode
   - 00000000 = reserved

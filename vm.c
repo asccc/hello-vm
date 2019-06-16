@@ -28,12 +28,24 @@ static bool read_opc (READ_ARGS);
 /** reads a immediate */
 static bool read_imm (READ_ARGS);
 
+/** checks the opcode before evaluation */
+static bool chck_opc (EVAL_ARGS);
+
 /** debug opcode */
 static void dump_opc (struct vm_opc *);
 /** debug immediate */
 static void dump_imm (struct vm_imm *);
 /** debug vm state */
 static void dump_rvm(struct vm*);
+
+/** evaluates a 8bit mode opcode */
+static enum op_res eval_m8 (EVAL_ARGS);
+/** evaluates a 16bit mode opcode */
+static enum op_res eval_m16 (EVAL_ARGS);
+/** evaluates a 32bit mode opcode */
+static enum op_res eval_m32 (EVAL_ARGS);
+/** evaluates a 64bit mode opcode */
+static enum op_res eval_m64 (EVAL_ARGS);
 
 /**
  * {@inheritdoc}
@@ -64,6 +76,7 @@ VM_CALL bool vm_fchk (struct vm *vm, u32 flag)
  */
 VM_CALL void vm_warn (struct vm *vm, const char *msg)
 {
+  fputs("[WARN]: ", stderr);
   fputs(msg, stderr);
   fputs("\n", stderr);
 }
@@ -102,12 +115,34 @@ VM_CALL void vm_exec (struct vm *vm, u8 *ops)
     dump_opc(&opc);
     dump_imm(&imm);
     dump_rvm(vm);
-    break;
+
+    if (!chck_opc(vm, &opc, &imm)) {
+      vm_warn(vm, "check failed");
+      goto end;
+    }
+    
+    switch (opc.mode) {
+      case MOD_BYTE:
+        res = eval_m8(vm, &opc, &imm);
+        break;
+      case MOD_WORD:
+        res = eval_m16(vm, &opc, &imm);
+        break;
+      case MOD_DWORD:
+        res = eval_m32(vm, &opc, &imm);
+        break;
+    #if VM_USE_QWORD
+      case MOD_QWORD:
+        res = eval_m64(vm, &opc, &imm);
+        break;
+    #endif
+      default:
+        vm_warn(vm, "opcode error");
+        goto end;
+    }
 
     switch (res) {
       case RES_NXT:
-        vm->pc++;
-        /* fall through */
       case RES_CNT:
         break;
       case RES_ERR:
@@ -195,30 +230,104 @@ static bool read_opc (READ_ARGS)
   return true;
 }
 
-#define READ_IMM(N,T) vm, ops, N, &(imm->data.T)
+#define READ_IMM(N,T) do {                     \
+  imm->size = N;                               \
+  return read_mem(vm, ops, N, &(imm->data.T)); \
+} while (0)
+
 #define READ_IMM_8  READ_IMM(1, byte)
 #define READ_IMM_16 READ_IMM(2, word)
 #define READ_IMM_32 READ_IMM(4, dword)
 #define READ_IMM_64 READ_IMM(8, qword)
+#define READ_IMM_SZ READ_IMM(sizeof(intptr_t), addr)
 
 /** reads a immediate */
 static bool read_imm (READ_ARGS)
 {
+  if (opc->args[0].type == ARG_PTR ||
+      opc->args[1].type == ARG_PTR) {
+    READ_IMM_SZ;
+  }
+
   switch (opc->mode) {
-    case MOD_BYTE:
-      return read_mem(READ_IMM_8);
-    case MOD_WORD:
-      return read_mem(READ_IMM_16);
-    case MOD_DWORD:
-      return read_mem(READ_IMM_32);
+    case MOD_BYTE:  READ_IMM_8;
+    case MOD_WORD:  READ_IMM_16;
+    case MOD_DWORD: READ_IMM_32;
   #if VM_USE_QWORD
-    case MOD_QWORD:
-      return read_mem(READ_IMM_64);
+    case MOD_QWORD: READ_IMM_64;
   #endif
-    default:
+    default: {
       assert(0);
       return false;
+    }
   }
+}
+
+/** checks the opcode before evaluation */
+static bool chck_opc (EVAL_ARGS)
+{
+  // 1. only one immediate is allowed
+  if ((opc->args[0].type == ARG_IMM ||
+       opc->args[0].type == ARG_PTR) &&
+      (opc->args[1].type == ARG_IMM ||
+       opc->args[1].type == ARG_PTR)) {
+    vm_warn(vm, "a instruction can only "
+                "request one immediate");
+    return false;
+  }
+
+  // 2. a immediate is required
+  if ((opc->args[0].type == ARG_PTR ||
+       opc->args[0].type == ARG_IMM ||
+       opc->args[1].type == ARG_PTR ||
+       opc->args[1].type == ARG_IMM) &&
+      imm->size == 0) {
+    vm_warn(vm, "as immediate is required, "
+                "but nothing was loaded");
+    return false;
+  }
+
+  // 3. immediate size must match
+  if (imm->size > 0) {
+    u32 size = opc->mode;
+    if (opc->args[0].type == ARG_PTR ||
+        opc->args[1].type == ARG_PTR) {
+      size = sizeof(size_t);
+    }
+
+    if (imm->size != size) {
+      vm_warn(vm, "unexpected size of immediate");
+      printf("got: %u, want: %u\n", imm->size, size);
+      return false;
+    }
+  }
+
+  // all checks passed
+  return true;
+}
+
+/** evaluates a 8bit mode opcode */
+static enum op_res eval_m8 (EVAL_ARGS)
+{
+  return RES_ERR;
+}
+
+/** evaluates a 16bit mode opcode */
+static enum op_res eval_m16 (EVAL_ARGS)
+{
+  return RES_ERR;
+}
+
+/** evaluates a 32bit mode opcode */
+static enum op_res eval_m32 (EVAL_ARGS)
+{
+  return RES_ERR;
+}
+
+/** evaluates a 64bit mode opcode */
+static enum op_res eval_m64 (EVAL_ARGS)
+{
+  return RES_ERR;
 }
 
 static void dump_opc (struct vm_opc *opc)
@@ -251,13 +360,17 @@ static void dump_imm (struct vm_imm *imm)
 {
   printf(
     "imm {\n"
-    "  byte: %u\n"
-    "  word: %u\n"
-    "  dword: %u\n"
+    "  size: %u\n"
+    "  data {\n"
+    "    byte: %u\n"
+    "    word: %u\n"
+    "    dword: %u\n"
   #if VM_USE_QWORD
-    "  qword: %lu\n"
+    "    qword: %lu\n"
   #endif
+    "  }\n"
     "}\n",
+    imm->size,
     imm->data.byte,
     imm->data.word,
     imm->data.dword
