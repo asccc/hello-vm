@@ -12,9 +12,11 @@ int main (void)
   u8 *ptr = ops;
   u32 opc = 2149859378;
   u64 imm = 42;
+  u32 end = 269484032;
   
   memcpy(ptr + 0, &opc, 4);
   memcpy(ptr + 4, &imm, 8);
+  memcpy(ptr + 12, &end, 4);
 
   vm_exec(&vm, ops); 
   return 0;

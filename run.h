@@ -76,22 +76,3 @@ extern RUN_CALL void memw_32 (struct vm*, u8*, u32);
  * @param the value to write
  */
 extern RUN_CALL void memw_64 (struct vm*, u8*, u64);
-
-/**
- * reads a address
- * 
- * @param the virtual-machine struct
- * @param the memory pointer
- * @return the value
- */
-extern RUN_CALL vm_ptr memr_ar (struct vm*, u8*);
-
-/**
- * writes a address
- * 
- * @param the virtual-machine struct
- * @param the memory pointer
- * @param the value to write
- */
-extern RUN_CALL void memw_ar (struct vm*, u8*, vm_ptr);
-

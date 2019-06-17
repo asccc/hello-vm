@@ -28,8 +28,6 @@ struct vm;
 struct vm_opc;
 struct vm_imm;
 
-typedef intptr_t vm_ptr;
-
 #if VM_USE_QWORD
   typedef u64 vm_max;
 #else

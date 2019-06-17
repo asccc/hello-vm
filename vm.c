@@ -38,13 +38,15 @@ static void dump_imm (struct vm_imm *);
 /** debug vm state */
 static void dump_rvm(struct vm*);
 
-/** evaluates a 8bit mode opcode */
+/** evaluates a opcode */
+static enum op_res eval_opc (EVAL_ARGS);
+/** evaluates a 8bit opcode */
 static enum op_res eval_m8 (EVAL_ARGS);
-/** evaluates a 16bit mode opcode */
+/** evaluates a 16bit opcode */
 static enum op_res eval_m16 (EVAL_ARGS);
-/** evaluates a 32bit mode opcode */
+/** evaluates a 32bit opcode */
 static enum op_res eval_m32 (EVAL_ARGS);
-/** evaluates a 64bit mode opcode */
+/** evaluates a 64bit opcode */
 static enum op_res eval_m64 (EVAL_ARGS);
 
 /**
@@ -53,6 +55,7 @@ static enum op_res eval_m64 (EVAL_ARGS);
 VM_CALL void vm_init (struct vm *vm)
 {
   assert(vm != 0);
+  
 }
 
 /**
@@ -121,25 +124,7 @@ VM_CALL void vm_exec (struct vm *vm, u8 *ops)
       goto end;
     }
     
-    switch (opc.mode) {
-      case MOD_BYTE:
-        res = eval_m8(vm, &opc, &imm);
-        break;
-      case MOD_WORD:
-        res = eval_m16(vm, &opc, &imm);
-        break;
-      case MOD_DWORD:
-        res = eval_m32(vm, &opc, &imm);
-        break;
-    #if VM_USE_QWORD
-      case MOD_QWORD:
-        res = eval_m64(vm, &opc, &imm);
-        break;
-    #endif
-      default:
-        vm_warn(vm, "opcode error");
-        goto end;
-    }
+    res = eval_opc(vm, &opc, &imm);
 
     switch (res) {
       case RES_NXT:
@@ -297,37 +282,12 @@ static bool chck_opc (EVAL_ARGS)
 
     if (imm->size != size) {
       vm_warn(vm, "unexpected size of immediate");
-      printf("got: %u, want: %u\n", imm->size, size);
       return false;
     }
   }
 
   // all checks passed
   return true;
-}
-
-/** evaluates a 8bit mode opcode */
-static enum op_res eval_m8 (EVAL_ARGS)
-{
-  return RES_ERR;
-}
-
-/** evaluates a 16bit mode opcode */
-static enum op_res eval_m16 (EVAL_ARGS)
-{
-  return RES_ERR;
-}
-
-/** evaluates a 32bit mode opcode */
-static enum op_res eval_m32 (EVAL_ARGS)
-{
-  return RES_ERR;
-}
-
-/** evaluates a 64bit mode opcode */
-static enum op_res eval_m64 (EVAL_ARGS)
-{
-  return RES_ERR;
 }
 
 static void dump_opc (struct vm_opc *opc)
@@ -375,7 +335,7 @@ static void dump_imm (struct vm_imm *imm)
     imm->data.word,
     imm->data.dword
   #if VM_USE_QWORD
-    , 
+    ,
     imm->data.qword
   #endif
   );
@@ -387,4 +347,30 @@ static void dump_rvm (struct vm *vm)
     "PC = %u\n",
     vm->pc
   );
+}
+
+/** evaluates a opcode */
+static enum op_res eval_opc (EVAL_ARGS)
+{
+  switch (opc->code) {
+    case OP_NOP:
+      return RES_NXT;
+    case OP_HLT:
+      return RES_HLT;
+  }
+
+  switch (opc->mode) {
+    case MOD_BYTE:
+      return eval_m8(vm, opc, imm);
+    case MOD_WORD:
+      return eval_m16(vm, opc, imm);
+    case MOD_DWORD:
+      return eval_m32(vm, opc, imm);
+  #if VM_USE_QWORD
+    case MOD_QWORD:
+      return eval_m64(vm, opc, imm);
+  #endif
+  }
+
+  return RES_ERR;
 }
