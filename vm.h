@@ -36,7 +36,9 @@ struct vm_imm;
 
 enum vm_opi {
   OP_NOP,
-  OP_SUB = 1
+  OP_HLT,
+  OP_ADD,
+  OP_SUB
 };
 
 enum vm_mod {
@@ -57,7 +59,6 @@ struct vm_imm {
   #if VM_USE_QWORD
     u64 qword;
   #endif
-    intptr_t addr;
   } data;
 };
 

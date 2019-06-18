@@ -166,6 +166,9 @@ static bool read_opc (READ_ARGS)
 {
   u32 bin; // opcode
   u16 ext; // opcode extra
+
+  // clear immediate
+  imm->size = 0;
   
   if (!read_mem(vm, ops, 4, &bin)) {
     // read error, abort
@@ -224,16 +227,10 @@ static bool read_opc (READ_ARGS)
 #define READ_IMM_16 READ_IMM(2, word)
 #define READ_IMM_32 READ_IMM(4, dword)
 #define READ_IMM_64 READ_IMM(8, qword)
-#define READ_IMM_SZ READ_IMM(sizeof(intptr_t), addr)
 
 /** reads a immediate */
 static bool read_imm (READ_ARGS)
 {
-  if (opc->args[0].type == ARG_PTR ||
-      opc->args[1].type == ARG_PTR) {
-    READ_IMM_SZ;
-  }
-
   switch (opc->mode) {
     case MOD_BYTE:  READ_IMM_8;
     case MOD_WORD:  READ_IMM_16;
@@ -373,4 +370,38 @@ static enum op_res eval_opc (EVAL_ARGS)
   }
 
   return RES_ERR;
+}
+
+#define CASE_OP(T, O, F) \
+  case O: return F ## _m ## T (vm, opc, imm);
+
+#define EVAL_OPSZ(T)   \
+  switch (opc->code) { \
+    CASE_OP(8, OP_ADD, op_add) \
+    CASE_OP(8, OP_SUB, op_sub) \
+  }                            \
+  return RES_ERR;
+
+/** evaluates a 8bit opcode */
+static enum op_res eval_m8 (EVAL_ARGS)
+{
+  EVAL_OPSZ(8)
+}
+
+/** evaluates a 16bit opcode */
+static enum op_res eval_m16 (EVAL_ARGS)
+{
+  EVAL_OPSZ(16)
+}
+
+/** evaluates a 32bit opcode */
+static enum op_res eval_m32 (EVAL_ARGS)
+{
+  EVAL_OPSZ(32)
+}
+
+/** evaluates a 64bit opcode */
+static enum op_res eval_m64 (EVAL_ARGS)
+{
+  EVAL_OPSZ(64)
 }
