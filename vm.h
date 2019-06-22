@@ -66,6 +66,7 @@ enum vm_err {
   VM_EIPSZ, // address size mismatch
   VM_EUNKR, // access to unknown register
   VM_EMBND, // access to memory out of bounds
+  VM_EDIV0, // division by 0
 };
 
 enum vm_opi {
@@ -75,6 +76,98 @@ enum vm_opi {
   OP_ADD_RM8_R8,
   OP_ADD_RM8_IMM8,
   OP_ADD_R8_RM8,
+  OP_ADD_RM16_R16,
+  OP_ADD_RM16_IMM16,
+  OP_ADD_R16_RM16,
+  OP_ADD_RM32_R32,
+  OP_ADD_RM32_IMM32,
+  OP_ADD_R32_RM32,
+  OP_ADD_RM64_R64,
+  OP_ADD_RM64_IMM64,
+  OP_ADD_R64_RM64,
+
+  OP_SUB_RM8_R8,
+  OP_SUB_RM8_IMM8,
+  OP_SUB_R8_RM8,
+  OP_SUB_RM16_R16,
+  OP_SUB_RM16_IMM16,
+  OP_SUB_R16_RM16,
+  OP_SUB_RM32_R32,
+  OP_SUB_RM32_IMM32,
+  OP_SUB_R32_RM32,
+  OP_SUB_RM64_R64,
+  OP_SUB_RM64_IMM64,
+  OP_SUB_R64_RM64,
+
+  OP_MUL_RM32_R32,
+  OP_MUL_RM32_IMM32,
+  OP_MUL_R32_RM32,
+  OP_MUL_RM64_R64,
+  OP_MUL_RM64_IMM64,
+  OP_MUL_R64_RM64,
+
+  OP_DIV_RM32_R32,
+  OP_DIV_RM32_IMM32,
+  OP_DIV_R32_RM32,
+  OP_DIV_RM64_R64,
+  OP_DIV_RM64_IMM64,
+  OP_DIV_R64_RM64,
+
+  OP_PUSH_R8,
+  OP_PUSH_RM8,
+  OP_PUSH_IMM8,
+  OP_PUSH_R16,
+  OP_PUSH_RM16,
+  OP_PUSH_IMM16,
+  OP_PUSH_R32,
+  OP_PUSH_RM32,
+  OP_PUSH_IMM32,
+  OP_PUSH_R64,
+  OP_PUSH_RM64,
+  OP_PUSH_IMM64,
+
+  OP_POP_R8,
+  OP_POP_RM8,
+  OP_POP_R16,
+  OP_POP_RM16,
+  OP_POP_R32,
+  OP_POP_RM32,
+  OP_POP_R64,
+  OP_POP_RM64,
+
+//   OP_CMP_RM8_R8,
+//   OP_CMP_RM8_IMM8,
+//   OP_CMP_R8_RM8,
+//   OP_CMP_RM16_R16,
+//   OP_CMP_RM16_IMM16,
+//   OP_CMP_R16_RM16,
+//   OP_CMP_RM32_R32,
+//   OP_CMP_RM32_IMM32,
+//   OP_CMP_R32_RM32,
+//   OP_CMP_RM64_R64,
+//   OP_CMP_RM64_IMM64,
+//   OP_CMP_R64_RM64,
+// 
+//   OP_MOV_RM8_R8,
+//   OP_MOV_RM8_IMM8,
+//   OP_MOV_R8_RM8,
+//   OP_MOV_RM16_R16,
+//   OP_MOV_RM16_IMM16,
+//   OP_MOV_R16_RM16,
+//   OP_MOV_RM32_R32,
+//   OP_MOV_RM32_IMM32,
+//   OP_MOV_R32_RM32,
+//   OP_MOV_RM64_R64,
+//   OP_MOV_RM64_IMM64,
+//   OP_MOV_R64_RM64,
+// 
+//   OP_INT,
+//   OP_CALL,
+//   OP_RET,
+//   OP_JMP,
+//   OP_JZ,
+//   OP_JL,
+//   OP_JG,
 
   // ------------------------
   // do not add opcodes below
@@ -122,8 +215,8 @@ enum vm_reg {
 };
 
 #define FLG_HLT (1u << 0)
-#define FLG_Z   (1u << 1)
-#define FLG_C   (1u << 2)
+#define FLG_ZF  (1u << 1)
+#define FLG_CF  (1u << 2)
 
 /**
  * virtual machine struct
@@ -161,7 +254,7 @@ extern VM_CALL void vm_exit (struct vm *, enum vm_err);
  * @param the virtual machine struct
  * @param the flag to set
  */
-extern VM_CALL void vm_flag (struct vm *, u32);
+extern VM_CALL void vm_flag (struct vm *, u32, bool);
 
 /**
  * checks if a flag is set

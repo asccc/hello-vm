@@ -10,6 +10,10 @@ OBJS=$(shell php -r '                             \
 	}, glob(__DIR__ . "/*.c")));                    \
 ')
 
+OBJS+=op/math.o
+OBJS+=op/stor.o
+OBJS+=op/flow.o
+
 PROG=hello-vm
 
 .PHONY: clean
@@ -27,7 +31,7 @@ comp: $(OBJS)
 	$(CC) $(CCFLAGS) -o $(PROG) $(OBJS) $(LDFLAGS)
 
 %.o: %.c
-	$(CC) $(CCFLAGS) -c $<
+	$(CC) $(CCFLAGS) -o $@ -c $<
 
 test: all
 	./$(PROG)
@@ -35,4 +39,5 @@ test: all
 clean:
 	rm -f $(PROG)
 	rm -f *.o
+	rm -f op/*.o
 	rm -f vm.inc

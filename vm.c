@@ -90,9 +90,13 @@ VM_CALL void vm_exit (struct vm *vm, enum vm_err err)
 /**
  * {@inheritdoc}
  */
-VM_CALL void vm_flag (struct vm *vm, u32 flag)
+VM_CALL void vm_flag (struct vm *vm, u32 flag, bool set)
 {
-  vm->st |= flag;
+  if (set) {
+    vm->st |= flag;
+    return;
+  }
+  vm->st &= ~flag;
 }
 
 /**
