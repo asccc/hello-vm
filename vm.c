@@ -12,31 +12,24 @@
 
 #define READ_ARGS     \
   struct vm *vm,      \
-  struct vm_opc *opc, \
-  struct vm_imm *imm
+  struct vm_opc *opc
 
 #define EVAL_ARGS     \
   struct vm *vm,      \
-  struct vm_opc *opc, \
-  struct vm_imm *imm
+  struct vm_opc *opc
 
-#define EVAL_PASS vm, opc, imm
+#define EVAL_PASS vm, opc
 
 /** reads raw memory */
 static bool read_mem (struct vm*, szt, void*);
-
 /** reads a opcode */
 static bool read_opc (READ_ARGS);
-/** reads a immediate */
-static bool read_imm (READ_ARGS);
 
 /** checks the opcode before evaluation */
 static bool chck_opc (EVAL_ARGS);
 
 /** debug opcode */
 static void dump_opc (struct vm_opc *);
-/** debug immediate */
-static void dump_imm (struct vm_imm *);
 /** debug vm state */
 static void dump_rvm(struct vm*);
 
@@ -55,6 +48,7 @@ VM_CALL void vm_init (struct vm *vm)
 {
   assert(vm != 0);
   memset(vm->oph, 0, NUM_OPS * sizeof(vm_oph));
+  memset(vm->ops, 0, NUM_OPS * sizeof(vm_ops));
 
   // initialize context
   vm->pc = 0;
@@ -63,13 +57,13 @@ VM_CALL void vm_init (struct vm *vm)
   vm->ep = 0;
 
   // general purpose registers
-  vm->r0 = mem_aodt(sizeof(vm_max));
-  vm->r1 = mem_aodt(sizeof(vm_max));
-  vm->r2 = mem_aodt(sizeof(vm_max));
+  vm->r0 = 1;
+  vm->r1 = 2;
+  vm->r2 = 0;
   
   // initialize stack
   vm->mm = mem_aodt(512);
-  vm->sp = vm->mm + 512;
+  vm->sp = (intptr_t) (vm->mm + 512);
   vm->bp = vm->sp;
 
   // memory boundaries
@@ -81,6 +75,16 @@ VM_CALL void vm_init (struct vm *vm)
   vm->oph[OP_HLT] = 0;
 
   #include "vm.tab"
+}
+
+VM_CALL void vm_exit (struct vm *vm, enum vm_err err)
+{
+  vm->hlt = true;
+  vm->err = err;
+
+#ifndef NDEBUG
+  printf("[EXIT]: vm exited with error-code: %u\n", err);
+#endif
 }
 
 /**
@@ -123,9 +127,6 @@ VM_CALL void vm_free (struct vm *vm)
   vm->ep = 0;
   // release memory
   mem_free(vm->mm);
-  mem_free(vm->r0);
-  mem_free(vm->r1);
-  mem_free(vm->r2);
 }
 
 /**
@@ -137,7 +138,6 @@ VM_CALL void vm_exec (struct vm *vm, u8 *ops, szt len)
   assert(ops != 0);
 
   struct vm_opc opc;
-  struct vm_imm imm;
   
   vm->pc = 0;
   vm->ip = ops;
@@ -145,30 +145,29 @@ VM_CALL void vm_exec (struct vm *vm, u8 *ops, szt len)
 
   while ((vm->ip + vm->pc) < vm->ep) {
     memset(&opc, 0, sizeof(opc));
-    memset(&imm, 0, sizeof(imm));
 
-    if (!read_opc(vm, &opc, &imm)) {
-      vm_warn(vm, "bytecode error");
+    if (!read_opc(vm, &opc)) {
+      vm_exit(vm, VM_EOPC);
       goto end;
     }
 
   #ifndef NDEBUG
     dump_opc(&opc);
-    dump_imm(&imm);
   #endif
 
-    if (!chck_opc(vm, &opc, &imm)) {
-      vm_warn(vm, "check failed");
+    if (!chck_opc(vm, &opc)) {
+      vm_exit(vm, VM_ECHK);
       goto end;
     }
     
-    eval_opc(vm, &opc, &imm);
+    eval_opc(vm, &opc);
 
   #ifndef NDEBUG
     dump_rvm(vm);
   #endif
 
-    if (vm_fchk(vm, FLG_HLT)) {
+    if (vm->hlt) {
+      // vm_exit() called somewhere
       goto end;
     }
   }
@@ -188,6 +187,14 @@ VM_CALL bool vm_args (struct vm *vm, const char *fmt, ...)
   return false;
 }
 
+/**
+ * {@inheritdoc}
+ */
+VM_CALL void vm_read (struct vm *vm, szt s, void *o)
+{
+  read_mem(vm, s, o);
+}
+
 /** reads raw memory */
 static bool read_mem (struct vm *vm, szt sz, void *out)
 {
@@ -201,9 +208,6 @@ static bool read_opc (READ_ARGS)
 {
   u32 bin; // opcode
   u16 ext; // opcode extra
-
-  // clear immediate
-  imm->size = 0;
   
   if (!read_mem(vm, 4, &bin)) {
     // read error, abort
@@ -219,22 +223,20 @@ static bool read_opc (READ_ARGS)
     *a0 = opc->args + 0,
     *a1 = opc->args + 1;
 
-  // 2 bits = arg 0 type
-  a0->type = (bin >> 18) & 0x3;
+  // 3 bits = arg 0 type
+  a0->type = (bin >> 17) & 0x7;
   // 4 bits = arg 0 reg
-  a0->reg = (bin >> 14) & 0xf;
+  a0->reg = (bin >> 13) & 0xf;
   // 8 bits = arg 0 off
-  a0->off = (bin >> 6) & 0xff;
+  a0->off = (bin >> 5) & 0xff;
 
   // argument 1 type
-  a1->type = (bin >> 4) & 0x3;
+  a1->type = (bin >> 2) & 0x7;
 
   // data indicator
-  switch (bin & 0xf) {
+  switch (bin & 0x5) {
     case EXT_ARG: break;
     case EXT_END: return true;
-    case EXT_IMM:
-      return read_imm(vm, opc, imm);
     default:
       assert(0);
       return false;
@@ -253,109 +255,9 @@ static bool read_opc (READ_ARGS)
   return true;
 }
 
-#define READ_IMM(N,T) do {                \
-  imm->size = N;                          \
-  return read_mem(vm, N, &(imm->data.T)); \
-} while (0)
-
-#define READ_IMM_8  READ_IMM(1, byte)
-#define READ_IMM_16 READ_IMM(2, word)
-#define READ_IMM_32 READ_IMM(4, dword)
-#define READ_IMM_64 READ_IMM(8, qword)
-
-/** reads a immediate */
-static bool read_imm (READ_ARGS)
-{
-  switch (opc->mode) {
-    case MOD_BYTE:  READ_IMM_8;
-    case MOD_WORD:  READ_IMM_16;
-    case MOD_DWORD: READ_IMM_32;
-  #if VM_USE_QWORD
-    case MOD_QWORD: READ_IMM_64;
-  #endif
-    default: {
-      assert(0);
-      return false;
-    }
-  }
-}
-
 /** checks the opcode before evaluation */
 static bool chck_opc (EVAL_ARGS)
 {
-  // number of bytes for immediate/address
-  u32 size = 1 << (opc->mode - 1);
-
-  // 1. only one immediate is allowed
-  if ((opc->args[0].type == ARG_IMM ||
-       (opc->args[0].type == ARG_PTR &&
-        opc->args[0].reg == 0)) &&
-      (opc->args[1].type == ARG_IMM ||
-       (opc->args[1].type == ARG_PTR &&
-        opc->args[1].reg == 0))) {
-    vm_warn(vm, "a instruction can only "
-                "request one immediate");
-    return false;
-  }
-
-  // 2. a immediate is required
-  if (((opc->args[0].type == ARG_PTR &&
-        opc->args[0].reg == 0) ||
-       opc->args[0].type == ARG_IMM ||
-       (opc->args[1].type == ARG_PTR &&
-        opc->args[1].reg == 0) ||
-       opc->args[1].type == ARG_IMM) &&
-      imm->size == 0) {
-    vm_warn(vm, "an immediate is required, "
-                "but nothing was loaded");
-    return false;
-  }
-
-  // 3. immediate size must match
-  if (imm->size > 0) {
-    u32 reqs = size;
-    if (opc->args[0].type == ARG_PTR ||
-        opc->args[1].type == ARG_PTR) {
-      reqs = sizeof(intptr_t);
-    }
-
-    if (imm->size != reqs) {
-      vm_warn(vm, "unexpected size of immediate");
-    #ifndef NDEBUG
-      printf("%u <> %u\n", imm->size, size);
-    #endif
-      return false;
-    }
-  }
-
-  // 4. if a pointer is requested
-  if ((opc->args[0].type == ARG_PTR ||
-       opc->args[1].type == ARG_PTR) &&
-      sizeof(intptr_t) != size) {
-    vm_warn(vm, "address size mismatch");
-    return false;
-  }
-
-  // 5. R0, R1, R2 do not support offsets
-  // sub r0, [r1 + 4]
-  //          ^^^^^^
-  if (((opc->args[0].reg == REG_R0 ||
-        opc->args[0].reg == REG_R1 ||
-        opc->args[0].reg == REG_R1) &&
-       opc->args[0].type == ARG_PTR &&
-       opc->args[0].off != 0) ||
-      ((opc->args[1].reg == REG_R0 ||
-        opc->args[1].reg == REG_R1 ||
-        opc->args[1].reg == REG_R2) &&
-       opc->args[1].type == ARG_PTR &&
-       opc->args[1].off != 0)) {
-    vm_warn(vm, "scratch register with offset");
-    return false;
-  }
-
-  // 6. R0, R1, R2 cannot be used as address
-  
-
   // all checks passed
   return true;
 }
@@ -386,31 +288,6 @@ static void dump_opc (struct vm_opc *opc)
   );
 }
 
-static void dump_imm (struct vm_imm *imm)
-{
-  printf(
-    "imm {\n"
-    "  size: %u\n"
-    "  data {\n"
-    "    byte: %u\n"
-    "    word: %u\n"
-    "    dword: %u\n"
-  #if VM_USE_QWORD
-    "    qword: %lu\n"
-  #endif
-    "  }\n"
-    "}\n",
-    imm->size,
-    imm->data.byte,
-    imm->data.word,
-    imm->data.dword
-  #if VM_USE_QWORD
-    ,
-    imm->data.qword
-  #endif
-  );
-}
-
 static void dump_rvm (struct vm *vm)
 {
   printf(
@@ -431,8 +308,8 @@ static void dump_rvm (struct vm *vm)
     vm->ip,
     vm->ep,
     vm->mm,
-    vm->sp,
-    vm->bp,
+    (void*) vm->sp,
+    (void*) vm->bp,
     (void*) vm->mn,
     (void*) vm->mx,
     vm->r0,
@@ -449,23 +326,23 @@ static void eval_opc (EVAL_ARGS)
   }
 
   if (opc->code == OP_HLT) {
-    vm_flag(vm, FLG_HLT);
+    vm_exit(vm, VM_EHLT);
     return;
   }
 
   vm_oph oph = vm->oph[opc->code];
   
   if (oph == 0) {
-    vm_warn(vm, "unknown opcode");
-    vm_flag(vm, FLG_HLT);
+    vm_exit(vm, VM_EOPH);
     return;
   }
 
   #ifndef NDEBUG
+    vm_ops ops = vm->ops[opc->code];
     printf(
       "OP %x -> %s\n", 
       opc->code, 
-      vm->ops[opc->code]
+      ops ? ops : "(builtin)"
     );
   #endif
 

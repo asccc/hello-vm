@@ -11,24 +11,13 @@ int main (void)
   u8 ops[42] = {0};
   u8 *ptr = ops;
   
-  // mov r0, 40
-  // mov r1, 2
-  // add r0, r1
-  // dbg
-  // end
+  u32 add1 = 270835721;
+  u16 add2 = 24576;
 
-  u32 m01 = 1079590945;
-  u16 m02 = 24576;
+  u32 hlt = 1048576;
 
-  // u32 s01 = 1083457586;
-  // u64 s02 = 1;
-
-  u32 hlt = 269484032;
-  
-  memcpy(ptr + 0, &m01, 4);
-  memcpy(ptr + 4, &m02, 2);
-  // memcpy(ptr + 6, &s01, 4);
-  // memcpy(ptr + 10, &s02, 8);
+  memcpy(ptr + 0, &add1, 4);
+  memcpy(ptr + 4, &add2, 2);
   memcpy(ptr + 6, &hlt, 4);
 
   vm_exec(&vm, ops, 4 + 2 + 4); 

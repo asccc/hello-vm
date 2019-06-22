@@ -26,7 +26,6 @@
 
 struct vm;
 struct vm_opc;
-struct vm_imm;
 
 #if VM_USE_QWORD
   typedef u64 vm_max;
@@ -50,23 +49,32 @@ struct vm_imm;
 
 typedef void (*vm_oph)(
   struct vm*, 
-  struct vm_opc*, 
-  struct vm_imm*
+  struct vm_opc*
 );
+
+// yes, this typedef hides a pointer
+// apologies for that
+typedef const char *vm_ops;
+
+enum vm_err {
+  VM_ENONE = 0,
+  VM_EHLT, // vm was halted
+  VM_EOPC, // opcode error
+  VM_EOPH, // opcode handler not found
+  VM_ECHK, // opcode check failed
+  VM_EINMR, // invalid modr/m operand
+  VM_EIPSZ, // address size mismatch
+  VM_EUNKR, // access to unknown register
+  VM_EMBND, // access to memory out of bounds
+};
 
 enum vm_opi {
   OP_NOP = 0,
   OP_HLT,
 
-  OP_ADD_M8,
-  OP_ADD_M16,
-  OP_ADD_M32,
-  OP_ADD_M64,
-
-  OP_SUB_M8,
-  OP_SUB_M16,
-  OP_SUB_M32,
-  OP_SUB_M64,
+  OP_ADD_RM8_R8,
+  OP_ADD_RM8_IMM8,
+  OP_ADD_R8_RM8,
 
   // ------------------------
   // do not add opcodes below
@@ -80,31 +88,11 @@ enum vm_mod {
   MOD_QWORD = 4,
 };
 
-struct vm_imm {
-  u8 size;
-  union {
-    u8 byte;
-    u16 word;
-    u32 dword;
-  #if VM_HAS_QWORD
-    u64 qword;
-  #endif
-  } data;
-};
-
-#ifdef __x86_64
-  #define IMM_P(i) (i).data.qword
-  #define IMM_PP(i) (i)->data.qword
-#else
-  #define IMM_P(i) (i).data.dword
-  #define IMM_PP(i) (i)->data.dword
-#endif
-
 enum vm_aty {
   ARG_NIL = 0,
-  ARG_ADR,
-  ARG_PTR,
-  ARG_IMM
+  ARG_IRM, // register + offset
+  ARG_REG, // register addressing
+  ARG_IMM  // immediate
 };
 
 #define EXT_END 0
@@ -114,12 +102,12 @@ enum vm_aty {
 struct vm_arg {
   enum vm_aty type;
   i8 reg;
-  i8 off;
+  i16 off;
 };
 
 struct vm_opc {
   enum vm_mod mode;
-  u32 code;
+  u16 code;
   struct vm_arg args[2];
 };
 
@@ -146,23 +134,26 @@ struct vm {
   u8 *ip;
   u8 *ep;
   u8 *mm;
-  u8 *sp;
-  u8 *bp;
+  intptr_t sp;
+  intptr_t bp;
   intptr_t mn;
   intptr_t mx;
   vm_oph oph[NUM_OPS];
-  char  *ops[NUM_OPS];
+  vm_ops ops[NUM_OPS];
   vm_max r0;
   vm_max r1;
   vm_max r2;
+  bool hlt;
+  enum vm_err err;
 };
 
-/*
-    R8–R15 are the new 64-bit registers.
-    R8D–R15D are the lowermost 32 bits of each register.
-    R8W–R15W are the lowermost 16 bits of each register.
-    R8B–R15B are the lowermost 8 bits of each register.
-*/
+/**
+ * exits the vm-loop 
+ * 
+ * @param the virtual machine struct^
+ * @param a error message
+ */
+extern VM_CALL void vm_exit (struct vm *, enum vm_err);
 
 /**
  * sets a flag
@@ -221,3 +212,14 @@ extern VM_CALL void vm_exec (struct vm *, u8*, szt);
  * @return true on success, false on failure
  */
 extern VM_CALL bool vm_args (struct vm *, const char *, ...);
+
+/**
+ * reads the requested number of bytes from
+ * the current program and stores them in 
+ * read-order in the given buffer
+ * 
+ * @param the virtual machine struct
+ * @param the number of bytes to read
+ * @param the buffer
+ */
+extern VM_CALL void vm_read (struct vm*, szt, void*);
