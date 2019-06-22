@@ -4,27 +4,30 @@
 declare(strict_types=1);
 namespace HelloVM;
 
+const RE_CODE = '/^\s*(OP_[a-zA-Z_0-9]+)(?:\s*=[^,]+)?,?$/';
 
-$ops = [];
-$vmh = file_get_contents(__dir__ . '/vm.h');
-if (preg_match_all('/\s+OPC_(\w+)(?=,|\s=)/', $vmh, $mth)) {
-    $ops = $mth[1];
-}
-
-if (empty($ops)) {
-    exit("unable to parse opcodes");
-}
-
-function gen_vm($ops, $file)
+function gen_tab (string $i, string $o)
 {
-    $out = fopen($file, 'w+');
-    foreach ($ops as $op) {
-        $u = strtoupper($op);
-        $l = strtolower($op);
-        fwrite($out, "case OPC_{$u}:\n  rs = op_{$l}(vm, op);\n  break;\n");
-    }
-    fclose($out);
+  $out = fopen($o, 'w+');
 
+  foreach (file($i) as $line) {
+    if (preg_match(RE_CODE, $line, $m)) {
+      switch ($m[1]) {
+        case 'OP_NOP':
+        case 'OP_HLT':
+          break;
+        default:
+          $opc = $m[1];
+          $oph = strtolower($opc);
+          fwrite($out, "DEFN_OP($opc, $oph, \"$oph\");\n");
+      }
+    }
+  }
+
+  fclose($out);
 }
 
-gen_vm($ops, __dir__ . '/vm.inc');
+gen_tab(
+  __dir__ . '/vm.h',
+  __dir__ . '/vm.tab'
+);

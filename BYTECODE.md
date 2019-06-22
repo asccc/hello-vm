@@ -19,8 +19,8 @@ je nach BITMODE.
 ### 4 bits für den gewünschten Modus
   - 0001 = BYTE
   - 0010 = WORD
-  - 0100 = DWORD
-  - 1000 = QWORD
+  - 0011 = DWORD
+  - 0100 = QWORD
 
 ### 8 bits für den gewünschten Opcode
   - 00000000 = reserved
@@ -30,8 +30,8 @@ je nach BITMODE.
 
 ### 2 bits für das erste Argument
   - 00 = Kein Argument
-  - 01 = Register
-  - 10 = Adresse (übergeben als Immediate [size_t])
+  - 01 = Adresse (vgl. `nop sp`)
+  - 10 = Speicher (vgl. `nop [sp]`)
   - 11 = Immediate
 
 ### 4 bits zur Identifikation des ersten Registers
@@ -39,17 +39,12 @@ je nach BITMODE.
   - 0001 = SP
   - 0010 = BP
   - 0011 = DS
-  - 0100 = R0
-  - 0101 = R1
-  - 0110 = R2
-  - 0111 = R3
-  - 1000 = R4
-  - 1001 = R5
-  - 1010 = R6
-  - 1011 = R7
-  - 1100 = unused
-  - 1101 = unused
-  - 1110 = unused
+  - 0100 = CS
+  - 0101 = R0
+  - 0110 = R1
+  - 0111 = R2
+  - 1000 = unused
+  - ...
   - 1111 = unused
 
 ### 8 bits für ein Offset/Displacement relativ zum übergebenen Register oder Adresse
@@ -61,8 +56,8 @@ je nach BITMODE.
 
 ### 2 bits für das zweite Argument
   - 00 = Kein Argument
-  - 01 = Register
-  - 10 = Adresse (übergeben als Immediate [size_t])
+  - 01 = Adresse (vgl. `nop sp`)
+  - 10 = Speicher (vgl. `nop [sp]`)
   - 11 = Immediate
 
 ### 4 bits als Daten-Indikator

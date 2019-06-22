@@ -1,0 +1,8 @@
+DEFN_OP(OP_ADD_M8, op_add_m8, "op_add_m8");
+DEFN_OP(OP_ADD_M16, op_add_m16, "op_add_m16");
+DEFN_OP(OP_ADD_M32, op_add_m32, "op_add_m32");
+DEFN_OP(OP_ADD_M64, op_add_m64, "op_add_m64");
+DEFN_OP(OP_SUB_M8, op_sub_m8, "op_sub_m8");
+DEFN_OP(OP_SUB_M16, op_sub_m16, "op_sub_m16");
+DEFN_OP(OP_SUB_M32, op_sub_m32, "op_sub_m32");
+DEFN_OP(OP_SUB_M64, op_sub_m64, "op_sub_m64");
