@@ -31,9 +31,9 @@ INT_FUNC(dump)
     "  BP = %p\n"
     "  MN = %p\n"
     "  MX = %p\n"
-    "  R0 = %lu\n"
-    "  R1 = %lu\n"
-    "  R2 = %lu\n"
+    "  R0 = %p\n"
+    "  R1 = %p\n"
+    "  R2 = %p\n"
     "  HLT = %u\n"
     "  ERR = %u\n"
     "}\n",
@@ -46,9 +46,9 @@ INT_FUNC(dump)
     (void*) vm->bp,
     (void*) vm->mn,
     (void*) vm->mx,
-    vm->r0,
-    vm->r1,
-    vm->r2,
+    (void*) vm->r0,
+    (void*) vm->r1,
+    (void*) vm->r2,
     vm->hlt,
     vm->err
   );
@@ -75,7 +75,7 @@ INT_FUNC(putc)
 
 INT_FUNC(puts)
 {
-  puts((const char *)(vm->mm + vm->r1));
+  puts((char*)(vm->r1));
 }
 
 INT_FUNC(exit)

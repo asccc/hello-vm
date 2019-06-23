@@ -29,16 +29,16 @@ struct vm_opc;
 
 #if VM_USE_QWORD
   typedef u64 vm_max;
-  #define MSK_8  0x00000000000000FF
-  #define MSK_16 0x000000000000FFFF
-  #define MSK_32 0x00000000FFFFFFFF
-  #define MSK_64 0xFFFFFFFFFFFFFFFF
+  #define MSK_8  0xFFFFFFFFFFFFFF00
+  #define MSK_16 0xFFFFFFFF00000000
+  #define MSK_32 0xFFFF000000000000
+  #define MSK_64 0x0000000000000000
 #else
   typedef u32 vm_max;
-  #define MSK_8  0x000000FF
-  #define MSK_16 0x0000FFFF
-  #define MSK_32 0xFFFFFFFF
-  #define MSK_64 0xFFFFFFFF
+  #define MSK_8  0xFF000000
+  #define MSK_16 0xFFFF0000
+  #define MSK_32 0x00000000
+  #define MSK_64 0x00000000
 #endif
 
 #if VM_USE_QWORD || defined(__x86_64)
@@ -206,7 +206,7 @@ enum vm_aty {
 struct vm_arg {
   enum vm_aty type;
   i8 reg;
-  i16 off;
+  i8 off;
 };
 
 struct vm_opc {

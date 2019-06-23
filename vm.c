@@ -28,11 +28,6 @@ static bool read_opc (READ_ARGS);
 /** checks the opcode before evaluation */
 static bool chck_opc (EVAL_ARGS);
 
-/** debug opcode */
-static void dump_opc (struct vm_opc *);
-/** debug vm state */
-static void dump_rvm(struct vm*);
-
 /** evaluates a opcode */
 static void eval_opc (EVAL_ARGS);
 
@@ -64,13 +59,13 @@ VM_CALL void vm_init (struct vm *vm)
   vm->r2 = 0;
   
   // initialize stack
-  vm->mm = mem_aodt(512);
-  vm->sp = (intptr_t) (vm->mm + 512);
+  vm->mm = mem_aodt(64);
+  vm->sp = (intptr_t) (vm->mm + 64);
   vm->bp = vm->sp;
 
   // memory boundaries
   vm->mn = (intptr_t) (vm->mm);
-  vm->mx = (intptr_t) (vm->mm + 512);
+  vm->mx = (intptr_t) (vm->mm + 64);
 
   // built-in ops (not dispatched)
   vm->oph[OPI_NOP] = 0;
@@ -85,7 +80,9 @@ VM_CALL void vm_exit (struct vm *vm, enum vm_err err)
   vm->err = err;
 
 #ifndef NDEBUG
-  printf("ERROR: %u\n", err);
+  if (err > VM_EHLT) {
+    printf("ERROR: %u\n", err);
+  }
 #endif
 }
 
@@ -232,7 +229,7 @@ static bool read_opc (READ_ARGS)
   a1->type = (bin >> 2) & 0x7;
 
   // data indicator
-  switch (bin & 0x5) {
+  switch (bin & 0x3) {
     case EXT_ARG: break;
     case EXT_END: return true;
     default:
@@ -260,62 +257,6 @@ static bool chck_opc (EVAL_ARGS)
   return true;
 }
 
-static void dump_opc (struct vm_opc *opc)
-{
-  printf(
-    "mode: %d\n"
-    "code: %u\n"
-    "args[0] = {\n"
-    "  type: %d\n"
-    "  reg: %u\n"
-    "  off: %u\n"
-    "}\n"
-    "args[1] = {\n"
-    "  type: %d\n"
-    "  reg: %u\n"
-    "  off: %u\n"
-    "}\n",
-    opc->mode,
-    opc->code,
-    opc->args[0].type,
-    opc->args[0].reg,
-    opc->args[0].off,
-    opc->args[1].type,
-    opc->args[1].reg,
-    opc->args[1].off
-  );
-}
-
-static void dump_rvm (struct vm *vm)
-{
-  printf(
-    "PC = %u\n"
-    "ST = %u\n"
-    "IP = %p\n"
-    "EP = %p\n"
-    "MM = %p\n"
-    "SP = %p\n"
-    "BP = %p\n"
-    "MN = %p\n"
-    "MX = %p\n"
-    "R0 = %lu\n"
-    "R1 = %lu\n"
-    "R2 = %lu\n",
-    vm->pc,
-    vm->st,
-    vm->ip,
-    vm->ep,
-    vm->mm,
-    (void*) vm->sp,
-    (void*) vm->bp,
-    (void*) vm->mn,
-    (void*) vm->mx,
-    vm->r0,
-    vm->r1,
-    vm->r2
-  );
-}
-
 /** evaluates a opcode */
 static void eval_opc (EVAL_ARGS)
 {
@@ -338,8 +279,9 @@ static void eval_opc (EVAL_ARGS)
   #ifndef NDEBUG
     vm_ops ops = vm->ops[opc->code];
     printf(
-      "OPCOE: %s (0x%x)\n", 
+      "OPCODE: %s (0x%x [%u])\n", 
       ops ? ops : "(builtin)",
+      opc->code,
       opc->code
     );
   #endif

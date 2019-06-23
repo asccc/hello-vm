@@ -2,6 +2,8 @@
 #include "../flg.h"
 #include "../run.h"
 
+#include <stdio.h>
+
 #define MIN(a,b) ((a) > (b) ? (b) : (a))
 
 #define BINOP_ADD(S)             \
