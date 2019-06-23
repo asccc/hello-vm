@@ -10,6 +10,8 @@ OBJS=$(shell php -r '                             \
 	}, glob(__DIR__ . "/*.c")));                    \
 ')
 
+OBJS+=lex.o
+OBJS+=psr.o
 OBJS+=op/math.o
 OBJS+=op/stor.o
 OBJS+=op/flow.o
@@ -25,6 +27,8 @@ dbg: CCFLAGS+=-g
 dbg: gen comp
 
 gen:
+	re2c lex.re
+	byacc -l -o psr.c psr.y
 	php vm_gen.php
 
 comp: $(OBJS)

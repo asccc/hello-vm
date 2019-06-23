@@ -2,3 +2,5 @@
 *.o
 hello-vm
 *.code-workspace
+psr.c
+lex.c
