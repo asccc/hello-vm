@@ -54,6 +54,19 @@ extern OP_EX64 op_div_rm64_r64 (OP_ARGS);
 extern OP_EX64 op_div_rm64_imm64 (OP_ARGS);
 extern OP_EX64 op_div_r64_rm64 (OP_ARGS);
 
+extern OP_CALL op_cmp_rm8_r8 (OP_ARGS);
+extern OP_CALL op_cmp_rm8_imm8 (OP_ARGS);
+extern OP_CALL op_cmp_r8_rm8 (OP_ARGS);
+extern OP_CALL op_cmp_rm16_r16 (OP_ARGS);
+extern OP_CALL op_cmp_rm16_imm16 (OP_ARGS);
+extern OP_CALL op_cmp_r16_rm16 (OP_ARGS);
+extern OP_CALL op_cmp_rm32_r32 (OP_ARGS);
+extern OP_CALL op_cmp_rm32_imm32 (OP_ARGS);
+extern OP_CALL op_cmp_r32_rm32 (OP_ARGS);
+extern OP_EX64 op_cmp_rm64_r64 (OP_ARGS);
+extern OP_EX64 op_cmp_rm64_imm64 (OP_ARGS);
+extern OP_EX64 op_cmp_r64_rm64 (OP_ARGS);
+
 // --------------------------------
 // defined in op/stor.c
 
@@ -78,40 +91,31 @@ extern OP_CALL op_pop_r32 (OP_ARGS);
 extern OP_CALL op_pop_rm32 (OP_ARGS);
 extern OP_EX64 op_pop_r64 (OP_ARGS);
 extern OP_EX64 op_pop_rm64 (OP_ARGS);
-
-// extern OP_CALL op_cmp_rm8_r8 (OP_ARGS);
-// extern OP_CALL op_cmp_rm8_imm8 (OP_ARGS);
-// extern OP_CALL op_cmp_r8_rm8 (OP_ARGS);
-// extern OP_CALL op_cmp_rm16_r16 (OP_ARGS);
-// extern OP_CALL op_cmp_rm16_imm16 (OP_ARGS);
-// extern OP_CALL op_cmp_r16_rm16 (OP_ARGS);
-// extern OP_CALL op_cmp_rm32_r32 (OP_ARGS);
-// extern OP_CALL op_cmp_rm32_imm32 (OP_ARGS);
-// extern OP_CALL op_cmp_r32_rm32 (OP_ARGS);
-// extern OP_EX64 op_cmp_rm64_r64 (OP_ARGS);
-// extern OP_EX64 op_cmp_rm64_imm64 (OP_ARGS);
-// extern OP_EX64 op_cmp_r64_rm64 (OP_ARGS);
  
-// extern OP_CALL op_mov_rm8_r8 (OP_ARGS);
-// extern OP_CALL op_mov_rm8_imm8 (OP_ARGS);
-// extern OP_CALL op_mov_r8_rm8 (OP_ARGS);
-// extern OP_CALL op_mov_rm16_r16 (OP_ARGS);
-// extern OP_CALL op_mov_rm16_imm16 (OP_ARGS);
-// extern OP_CALL op_mov_r16_rm16 (OP_ARGS);
-// extern OP_CALL op_mov_rm32_r32 (OP_ARGS);
-// extern OP_CALL op_mov_rm32_imm32 (OP_ARGS);
-// extern OP_CALL op_mov_r32_rm32 (OP_ARGS);
-// extern OP_EX64 op_mov_rm64_r64 (OP_ARGS);
-// extern OP_EX64 op_mov_rm64_imm64 (OP_ARGS);
-// extern OP_EX64 op_mov_r64_rm64 (OP_ARGS);
+extern OP_CALL op_mov_rm8_r8 (OP_ARGS);
+extern OP_CALL op_mov_rm8_imm8 (OP_ARGS);
+extern OP_CALL op_mov_r8_rm8 (OP_ARGS);
+extern OP_CALL op_mov_rm16_r16 (OP_ARGS);
+extern OP_CALL op_mov_rm16_imm16 (OP_ARGS);
+extern OP_CALL op_mov_r16_rm16 (OP_ARGS);
+extern OP_CALL op_mov_rm32_r32 (OP_ARGS);
+extern OP_CALL op_mov_rm32_imm32 (OP_ARGS);
+extern OP_CALL op_mov_r32_rm32 (OP_ARGS);
+extern OP_EX64 op_mov_rm64_r64 (OP_ARGS);
+extern OP_EX64 op_mov_rm64_imm64 (OP_ARGS);
+extern OP_EX64 op_mov_r64_rm64 (OP_ARGS);
 
 // --------------------------------
 // defined in op/flow.c
 
-// extern OP_CALL op_int (OP_ARGS);
-// extern OP_CALL op_call (OP_ARGS);
-// extern OP_CALL op_ret (OP_ARGS);
-// extern OP_CALL op_jmp (OP_ARGS);
-// extern OP_CALL op_jz (OP_ARGS);
-// extern OP_CALL op_jl (OP_ARGS);
-// extern OP_CALL op_jg (OP_ARGS);
+extern OP_CALL op_int (OP_ARGS);
+extern OP_CALL op_call (OP_ARGS);
+extern OP_CALL op_ret (OP_ARGS);
+
+extern OP_CALL op_jmp (OP_ARGS);
+extern OP_CALL op_jz (OP_ARGS);
+extern OP_CALL op_jnz (OP_ARGS);
+extern OP_CALL op_jb (OP_ARGS);
+extern OP_CALL op_jnb (OP_ARGS);
+extern OP_CALL op_jbe (OP_ARGS);
+extern OP_CALL op_ja (OP_ARGS);

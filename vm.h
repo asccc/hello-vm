@@ -47,6 +47,12 @@ struct vm_opc;
   #define VM_HAS_QWORD 0
 #endif
 
+#if VM_HAS_QWORD
+  #define VM_EX64 VM_CALL
+#else
+  #define VM_EX64 VM_CALL __attribute__((unused))
+#endif
+
 typedef void (*vm_oph)(
   struct vm*, 
   struct vm_opc*
@@ -67,107 +73,112 @@ enum vm_err {
   VM_EUNKR, // access to unknown register
   VM_EMBND, // access to memory out of bounds
   VM_EDIV0, // division by 0
+  VM_EUNKI, // unknown interrupt
+  VM_EJMPB, // jump or call out of bounds
 };
 
 enum vm_opi {
-  OP_NOP = 0,
-  OP_HLT,
+  OPI_NOP = 0,
+  OPI_HLT,
 
-  OP_ADD_RM8_R8,
-  OP_ADD_RM8_IMM8,
-  OP_ADD_R8_RM8,
-  OP_ADD_RM16_R16,
-  OP_ADD_RM16_IMM16,
-  OP_ADD_R16_RM16,
-  OP_ADD_RM32_R32,
-  OP_ADD_RM32_IMM32,
-  OP_ADD_R32_RM32,
-  OP_ADD_RM64_R64,
-  OP_ADD_RM64_IMM64,
-  OP_ADD_R64_RM64,
+  OPI_ADD_RM8_R8,
+  OPI_ADD_RM8_IMM8,
+  OPI_ADD_R8_RM8,
+  OPI_ADD_RM16_R16,
+  OPI_ADD_RM16_IMM16,
+  OPI_ADD_R16_RM16,
+  OPI_ADD_RM32_R32,
+  OPI_ADD_RM32_IMM32,
+  OPI_ADD_R32_RM32,
+  OPI_ADD_RM64_R64,
+  OPI_ADD_RM64_IMM64,
+  OPI_ADD_R64_RM64,
 
-  OP_SUB_RM8_R8,
-  OP_SUB_RM8_IMM8,
-  OP_SUB_R8_RM8,
-  OP_SUB_RM16_R16,
-  OP_SUB_RM16_IMM16,
-  OP_SUB_R16_RM16,
-  OP_SUB_RM32_R32,
-  OP_SUB_RM32_IMM32,
-  OP_SUB_R32_RM32,
-  OP_SUB_RM64_R64,
-  OP_SUB_RM64_IMM64,
-  OP_SUB_R64_RM64,
+  OPI_SUB_RM8_R8,
+  OPI_SUB_RM8_IMM8,
+  OPI_SUB_R8_RM8,
+  OPI_SUB_RM16_R16,
+  OPI_SUB_RM16_IMM16,
+  OPI_SUB_R16_RM16,
+  OPI_SUB_RM32_R32,
+  OPI_SUB_RM32_IMM32,
+  OPI_SUB_R32_RM32,
+  OPI_SUB_RM64_R64,
+  OPI_SUB_RM64_IMM64,
+  OPI_SUB_R64_RM64,
 
-  OP_MUL_RM32_R32,
-  OP_MUL_RM32_IMM32,
-  OP_MUL_R32_RM32,
-  OP_MUL_RM64_R64,
-  OP_MUL_RM64_IMM64,
-  OP_MUL_R64_RM64,
+  OPI_MUL_RM32_R32,
+  OPI_MUL_RM32_IMM32,
+  OPI_MUL_R32_RM32,
+  OPI_MUL_RM64_R64,
+  OPI_MUL_RM64_IMM64,
+  OPI_MUL_R64_RM64,
 
-  OP_DIV_RM32_R32,
-  OP_DIV_RM32_IMM32,
-  OP_DIV_R32_RM32,
-  OP_DIV_RM64_R64,
-  OP_DIV_RM64_IMM64,
-  OP_DIV_R64_RM64,
+  OPI_DIV_RM32_R32,
+  OPI_DIV_RM32_IMM32,
+  OPI_DIV_R32_RM32,
+  OPI_DIV_RM64_R64,
+  OPI_DIV_RM64_IMM64,
+  OPI_DIV_R64_RM64,
 
-  OP_PUSH_R8,
-  OP_PUSH_RM8,
-  OP_PUSH_IMM8,
-  OP_PUSH_R16,
-  OP_PUSH_RM16,
-  OP_PUSH_IMM16,
-  OP_PUSH_R32,
-  OP_PUSH_RM32,
-  OP_PUSH_IMM32,
-  OP_PUSH_R64,
-  OP_PUSH_RM64,
-  OP_PUSH_IMM64,
+  OPI_CMP_RM8_R8,
+  OPI_CMP_RM8_IMM8,
+  OPI_CMP_R8_RM8,
+  OPI_CMP_RM16_R16,
+  OPI_CMP_RM16_IMM16,
+  OPI_CMP_R16_RM16,
+  OPI_CMP_RM32_R32,
+  OPI_CMP_RM32_IMM32,
+  OPI_CMP_R32_RM32,
+  OPI_CMP_RM64_R64,
+  OPI_CMP_RM64_IMM64,
+  OPI_CMP_R64_RM64,
 
-  OP_POP_R8,
-  OP_POP_RM8,
-  OP_POP_R16,
-  OP_POP_RM16,
-  OP_POP_R32,
-  OP_POP_RM32,
-  OP_POP_R64,
-  OP_POP_RM64,
+  OPI_PUSH_R8,
+  OPI_PUSH_RM8,
+  OPI_PUSH_IMM8,
+  OPI_PUSH_R16,
+  OPI_PUSH_RM16,
+  OPI_PUSH_IMM16,
+  OPI_PUSH_R32,
+  OPI_PUSH_RM32,
+  OPI_PUSH_IMM32,
+  OPI_PUSH_R64,
+  OPI_PUSH_RM64,
+  OPI_PUSH_IMM64,
 
-//   OP_CMP_RM8_R8,
-//   OP_CMP_RM8_IMM8,
-//   OP_CMP_R8_RM8,
-//   OP_CMP_RM16_R16,
-//   OP_CMP_RM16_IMM16,
-//   OP_CMP_R16_RM16,
-//   OP_CMP_RM32_R32,
-//   OP_CMP_RM32_IMM32,
-//   OP_CMP_R32_RM32,
-//   OP_CMP_RM64_R64,
-//   OP_CMP_RM64_IMM64,
-//   OP_CMP_R64_RM64,
-// 
-//   OP_MOV_RM8_R8,
-//   OP_MOV_RM8_IMM8,
-//   OP_MOV_R8_RM8,
-//   OP_MOV_RM16_R16,
-//   OP_MOV_RM16_IMM16,
-//   OP_MOV_R16_RM16,
-//   OP_MOV_RM32_R32,
-//   OP_MOV_RM32_IMM32,
-//   OP_MOV_R32_RM32,
-//   OP_MOV_RM64_R64,
-//   OP_MOV_RM64_IMM64,
-//   OP_MOV_R64_RM64,
-// 
-//   OP_INT,
-//   OP_CALL,
-//   OP_RET,
-//   OP_JMP,
-//   OP_JZ,
-//   OP_JL,
-//   OP_JG,
+  OPI_POP_R8,
+  OPI_POP_RM8,
+  OPI_POP_R16,
+  OPI_POP_RM16,
+  OPI_POP_R32,
+  OPI_POP_RM32,
+  OPI_POP_R64,
+  OPI_POP_RM64,
+
+  OPI_MOV_RM8_R8,
+  OPI_MOV_RM8_IMM8,
+  OPI_MOV_R8_RM8,
+  OPI_MOV_RM16_R16,
+  OPI_MOV_RM16_IMM16,
+  OPI_MOV_R16_RM16,
+  OPI_MOV_RM32_R32,
+  OPI_MOV_RM32_IMM32,
+  OPI_MOV_R32_RM32,
+  OPI_MOV_RM64_R64,
+  OPI_MOV_RM64_IMM64,
+  OPI_MOV_R64_RM64,
+
+  OPI_INT,
+  OPI_CALL,
+  OPI_RET,
+  OPI_JMP,
+  OPI_JZ,
+  OPI_JNZ,
+  OPI_JB,
+  OPI_JNB,
+  OPI_JBE,
+  OPI_JA,
 
   // ------------------------
   // do not add opcodes below
@@ -214,9 +225,10 @@ enum vm_reg {
   REG_R2
 };
 
-#define FLG_HLT (1u << 0)
 #define FLG_ZF  (1u << 1)
 #define FLG_CF  (1u << 2)
+#define FLG_SF  (1u << 3)
+#define FLG_OF  (1u << 4)
 
 /**
  * virtual machine struct
@@ -316,3 +328,4 @@ extern VM_CALL bool vm_args (struct vm *, const char *, ...);
  * @param the buffer
  */
 extern VM_CALL void vm_read (struct vm*, szt, void*);
+

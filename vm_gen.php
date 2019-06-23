@@ -4,7 +4,7 @@
 declare(strict_types=1);
 namespace HelloVM;
 
-const RE_CODE = '/^\s*(OP_[a-zA-Z_0-9]+)(?:\s*=[^,]+)?,?$/';
+const RE_CODE = '/^\s*(OPI_[a-zA-Z_0-9]+)(?:\s*=[^,]+)?,?$/';
 
 function gen_tab (string $i, string $o)
 {
@@ -13,12 +13,13 @@ function gen_tab (string $i, string $o)
   foreach (file($i) as $line) {
     if (preg_match(RE_CODE, $line, $m)) {
       switch ($m[1]) {
-        case 'OP_NOP':
-        case 'OP_HLT':
+        case 'OPI_NOP':
+        case 'OPI_HLT':
           break;
         default:
           $opc = $m[1];
           $oph = strtolower($opc);
+          $oph = strtr($oph,  [ 'opi_' => 'op_' ]);
           fwrite($out, "DEFN_OP($opc, $oph, \"$oph\");\n");
       }
     }

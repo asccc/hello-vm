@@ -40,40 +40,35 @@ RUN_INTR void regw_a (
 }
 
 /**
- * Memory access
+ * Memory API
  */
 
-#define MEMW(N)                   \
-  static void memw_ ## N (        \
-    struct vm *vm,                \
-    intptr_t ptr,                 \
-    u ## N val                    \
-  ) {                             \
-    if (ptr < vm->mn) {           \
-      vm_exit(vm, VM_EMBND);      \
-      return;                     \
-    }                             \
-    if (ptr + (N / 8) > vm->mx) { \
-      vm_exit(vm, VM_EMBND);      \
-      return;                     \
-    }                             \
-    *((u ## N*) ptr) = val;       \
+#define MEMW(N)                                   \
+  RUN_CALL void memw_ ## N (MEM_ARGS, u ## N val) \
+  {                                               \
+    if (ptr < vm->mn) {                           \
+      vm_exit(vm, VM_EMBND);                      \
+      return;                                     \
+    }                                             \
+    if (ptr + (N / 8) > vm->mx) {                 \
+      vm_exit(vm, VM_EMBND);                      \
+      return;                                     \
+    }                                             \
+    *((u ## N*) ptr) = val;                       \
   }
 
-#define MEMR(N)                   \
-  static u ## N memr_ ## N (      \
-    struct vm *vm,                \
-    intptr_t ptr                  \
-  ) {                             \
-    if (ptr < vm->mn) {           \
-      vm_exit(vm, VM_EMBND);      \
-      return 0;                   \
-    }                             \
-    if (ptr + (N / 8) > vm->mx) { \
-      vm_exit(vm, VM_EMBND);      \
-      return 0;                   \
-    }                             \
-    return *(u ## N*) ptr;        \
+#define MEMR(N)                                   \
+  RUN_CALL u ## N memr_ ## N (MEM_ARGS)           \
+  {                                               \
+    if (ptr < vm->mn) {                           \
+      vm_exit(vm, VM_EMBND);                      \
+      return 0;                                   \
+    }                                             \
+    if (ptr + (N / 8) > vm->mx) {                 \
+      vm_exit(vm, VM_EMBND);                      \
+      return 0;                                   \
+    }                                             \
+    return *(u ## N*) ptr;                        \
   }
 
 MEMR(8)

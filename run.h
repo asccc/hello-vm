@@ -16,9 +16,26 @@
   #define RUN_EX64 RUN_CALL __attribute__((unused))
 #endif
 
-#define RUN_ARGS      \
-  struct vm *vm,      \
+#define RUN_ARGS     \
+  struct vm *vm,     \
   struct vm_arg *arg
+
+#define MEM_ARGS \
+  struct vm *vm, \
+  intptr_t ptr
+
+/**
+ * Memory API
+ */
+
+extern RUN_CALL void memw_8 (MEM_ARGS, u8);
+extern RUN_CALL u8   memr_8 (MEM_ARGS);
+extern RUN_CALL void memw_16 (MEM_ARGS, u16);
+extern RUN_CALL u16  memr_16 (MEM_ARGS);
+extern RUN_CALL void memw_32 (MEM_ARGS, u32);
+extern RUN_CALL u32  memr_32 (MEM_ARGS);
+extern RUN_EX64 void memw_64 (MEM_ARGS, u64);
+extern RUN_EX64 u64  memr_64 (MEM_ARGS);
 
 /**
  * ModR/M API

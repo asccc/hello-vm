@@ -55,10 +55,12 @@ VM_CALL void vm_init (struct vm *vm)
   vm->st = 0;
   vm->ip = 0;
   vm->ep = 0;
+  vm->err = 0;
+  vm->hlt = 0;
 
   // general purpose registers
   vm->r0 = 1;
-  vm->r1 = 2;
+  vm->r1 = 0;
   vm->r2 = 0;
   
   // initialize stack
@@ -71,8 +73,8 @@ VM_CALL void vm_init (struct vm *vm)
   vm->mx = (intptr_t) (vm->mm + 512);
 
   // built-in ops (not dispatched)
-  vm->oph[OP_NOP] = 0;
-  vm->oph[OP_HLT] = 0;
+  vm->oph[OPI_NOP] = 0;
+  vm->oph[OPI_HLT] = 0;
 
   #include "vm.tab"
 }
@@ -83,7 +85,7 @@ VM_CALL void vm_exit (struct vm *vm, enum vm_err err)
   vm->err = err;
 
 #ifndef NDEBUG
-  printf("[EXIT]: vm exited with error-code: %u\n", err);
+  printf("ERROR: %u\n", err);
 #endif
 }
 
@@ -115,7 +117,7 @@ VM_CALL bool vm_fchk (struct vm *vm, u32 flag)
  */
 VM_CALL void vm_warn (struct vm *vm, const char *msg)
 {
-  fputs("[WARN]: ", stderr);
+  fputs("warning: ", stderr);
   fputs(msg, stderr);
   fputs("\n", stderr);
 }
@@ -155,10 +157,6 @@ VM_CALL void vm_exec (struct vm *vm, u8 *ops, szt len)
       goto end;
     }
 
-  #ifndef NDEBUG
-    dump_opc(&opc);
-  #endif
-
     if (!chck_opc(vm, &opc)) {
       vm_exit(vm, VM_ECHK);
       goto end;
@@ -166,16 +164,12 @@ VM_CALL void vm_exec (struct vm *vm, u8 *ops, szt len)
     
     eval_opc(vm, &opc);
 
-  #ifndef NDEBUG
-    dump_rvm(vm);
-  #endif
-
     if (vm->hlt) {
       // vm_exit() called somewhere
       goto end;
     }
   }
-  
+
   end:
   return;
 }
@@ -325,11 +319,11 @@ static void dump_rvm (struct vm *vm)
 /** evaluates a opcode */
 static void eval_opc (EVAL_ARGS)
 {
-  if (opc->code == OP_NOP) {
+  if (opc->code == OPI_NOP) {
     return;
   }
 
-  if (opc->code == OP_HLT) {
+  if (opc->code == OPI_HLT) {
     vm_exit(vm, VM_EHLT);
     return;
   }
@@ -344,9 +338,9 @@ static void eval_opc (EVAL_ARGS)
   #ifndef NDEBUG
     vm_ops ops = vm->ops[opc->code];
     printf(
-      "OP %x -> %s\n", 
-      opc->code, 
-      ops ? ops : "(builtin)"
+      "OPCOE: %s (0x%x)\n", 
+      ops ? ops : "(builtin)",
+      opc->code
     );
   #endif
 
