@@ -1,7 +1,7 @@
 .vscode
 *.o
 hello-vm
-hello-v.exe
+hello-vm.exe
 *.code-workspace
 psr.c
 lex.c
