@@ -4,7 +4,7 @@
 declare(strict_types=1);
 namespace HelloVM;
 
-const RE_CODE = '/^\s*(OPI_[a-zA-Z_0-9]+)(?:\s*=[^,]+)?,?$/';
+const RE_CODE = '/^\s*(OPI_[a-zA-Z_0-9]+)(?:\s*=[^,]+)?,?\s*$/';
 
 function gen_tab (string $i, string $o)
 {
