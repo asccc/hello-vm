@@ -19,16 +19,20 @@ je nach BITMODE.
 
 ## Bitset
 
-### 4 bits für den gewünschten Modus
-  - 0001 = BYTE
-  - 0010 = WORD
-  - 0011 = DWORD
-  - 0100 = QWORD
+### 3 bits für den gewünschten Modus
+  - 000 = Irrelevant
+  - 001 = BYTE
+  - 010 = WORD
+  - 011 = DWORD
+  - 100 = QWORD
+  - 101 = Reserviert
+  - 110 = Reserviert
+  - 111 = Reserviert
 
-### 8 bits für den gewünschten Opcode
-  - 00000000 = reserved
-  - 00000001 = nop 
-  - 00000010 = sub
+### 12 bits für den gewünschten Opcode
+  - 000000000000 = Reserviert
+  - 000000000001 = nop 
+  - 000000000010 = sub
   - ...
 
 ### 3 bits für das erste Argument
@@ -40,25 +44,18 @@ je nach BITMODE.
   - ...
   - 111 = Reserviert
 
-### 4 bits zur Identifikation des ersten Registers
-  - 0000 = unused
-  - 0001 = SP
-  - 0010 = BP
-  - 0011 = DS
-  - 0100 = CS
-  - 0101 = R0
-  - 0110 = R1
-  - 0111 = R2
-  - 1000 = Reserviert
+### 5 bits zur Identifikation des ersten Registers
+  - 00000 = unused
+  - 00001 = SP
+  - 00010 = BP
+  - 00011 = DS
+  - 00100 = CS
+  - 00101 = R0
+  - 00110 = R1
+  - 00111 = R2
+  - 01000 = Reserviert
   - ...
-  - 1111 = Reserviert
-
-### 8 bits für ein Offset relativ zum übergebenen Register oder Speicher
-  Eingelesen wird ein 8bit Integer mit Vorzeichen.
-
-  Sollte ein Offset größer als 127 oder kleiner als -128 benötigt werden,
-  muss über einen speziellen Opcode ein Offset als Immediate übergeben 
-  und die Zieladresse auf diesen Weg errechnet werden.
+  - 11111 = Reserviert
 
 ### 3 bits für das zweite Argument
   - 000 = Kein Argument
@@ -69,8 +66,42 @@ je nach BITMODE.
   - ...
   - 111 = Reserviert
 
-### 2 bits als Daten-Indikator
-  - 00 = Es folgen keine weiteren Daten
-  - 01 = Es folgen 16 bits zur Initialisierung des zweiten Arguments
-  - 10 = Reserviert
-  - 11 = Reserviert
+### 5 bits zur Identifikation des ersten Registers
+  - 00000 = unused
+  - 00001 = SP
+  - 00010 = BP
+  - 00011 = DS
+  - 00100 = CS
+  - 00101 = R0
+  - 00110 = R1
+  - 00111 = R2
+  - 01000 = Reserviert
+  - ...
+  - 11111 = Reserviert
+
+### 1 bit als Displacement Indikator
+  - 0 = Es folgt kein Displacement
+  - 1 = Es folgt ein je nach Modus 1, 2, 4 oder 8 Byte Displacement
+
+## Displacements
+
+Displacements diesen zur relativen Adressierung von Speicher 
+(bei Speicheradressierung).
+
+Displacements werden beim dekodieren des Bytecodes geladen und direkt mit 
+an die Opcode-Handler übergeben.
+
+Nur eines der beiden Argumente kann ein Displacement besitzen. Entsprechend 
+kann nur eines der beiden Argumene Speicheradressierung nutzen.
+
+## Immediates
+
+Immediates werden benutzt um scalare Werte als Argument zu übergeben.
+
+Zum Beispiel: `mov r1, 42` hier wird die Zahl "42" als Immediate übergeben.
+
+Immediates werden während der Ausfühung der Instruktionen geladen. Es können
+beliebig viele Immediates pro Instruktion geladen werden. in den Opcode-Handler
+Funktionen kann selbst entschieden werden wie viele Immediates benötigt werden.
+
+(TODO: Immediate-Flags integrieren)
