@@ -47,6 +47,7 @@ int main (void)
   code4(&ptr, 1145323520);          // pop bp
   code4(&ptr, 1161822208);          // ret
 
-  vm_exec(&vm, ops, ptr - ops); 
+  vm_exec(&vm, ops, ptr - ops);
+  vm_free(&vm);
   return 0;
 }
