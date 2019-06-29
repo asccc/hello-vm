@@ -3,9 +3,9 @@
 #include "vm.h"
 
 #define OP_CALL __attribute__((nonnull, noinline)) void
-#define OP_ARGS struct vm *vm, struct vm_opc *opc
+#define OP_ARGS struct vm *vm, struct vm_ins *ins
 
-#if VM_HAS_QWORD
+#if VM64
   #define OP_EX64 OP_CALL
 #else
   #define OP_EX64 OP_CALL __attribute__((unused))

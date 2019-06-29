@@ -12,13 +12,13 @@
 
 #define READ_ARGS     \
   struct vm *vm,      \
-  struct vm_opc *opc
+  struct vm_ins *ins
 
 #define EVAL_ARGS     \
   struct vm *vm,      \
-  struct vm_opc *opc
+  struct vm_ins *ins
 
-#define EVAL_PASS vm, opc
+#define EVAL_PASS vm, ins
 
 /** reads raw memory */
 static bool read_mem (struct vm*, szt, void*);
@@ -46,12 +46,15 @@ VM_CALL void vm_init (struct vm *vm)
   memset(vm->ops, 0, NUM_OPS * sizeof(vm_ops));
 
   // initialize context
-  vm->pc = 0;
-  vm->st = 0;
   vm->ip = 0;
   vm->ep = 0;
   vm->err = 0;
   vm->hlt = 0;
+
+  vm->flg.cf = 0;
+  vm->flg.of = 0;
+  vm->flg.sf = 0;
+  vm->flg.zf = 0;
 
   // general purpose registers
   vm->r0 = 1;
@@ -64,12 +67,12 @@ VM_CALL void vm_init (struct vm *vm)
   vm->bp = vm->sp;
 
   // memory boundaries
-  vm->mn = (intptr_t) (vm->mm);
-  vm->mx = (intptr_t) (vm->mm + 64);
+  vm->lb = (intptr_t) (vm->mm);
+  vm->ub = (intptr_t) (vm->mm + 64);
 
   // built-in ops (not dispatched)
-  vm->oph[OPI_NOP] = 0;
-  vm->oph[OPI_HLT] = 0;
+  vm->oph[OPC_NOP] = 0;
+  vm->oph[OPC_HLT] = 0;
 
   #include "vm.tab"
 }
@@ -84,29 +87,6 @@ VM_CALL void vm_exit (struct vm *vm, enum vm_err err)
     printf("ERROR: %u\n", err);
   }
 #endif
-}
-
-/**
- * {@inheritdoc}
- */
-VM_CALL void vm_flag (struct vm *vm, u32 flag, bool set)
-{
-  if (set) {
-    vm->st |= flag;
-    return;
-  }
-  vm->st &= ~flag;
-}
-
-/**
- * {@inheritdoc}
- */
-VM_CALL bool vm_fchk (struct vm *vm, u32 flag)
-{
-  if (vm->st & flag) {
-    return true;
-  }
-  return false;
 }
 
 /**
@@ -140,26 +120,25 @@ VM_CALL void vm_exec (struct vm *vm, u8 *ops, szt len)
   assert(vm != 0);
   assert(ops != 0);
 
-  struct vm_opc opc;
+  struct vm_ins ins;
   
-  vm->pc = 0;
   vm->ip = ops;
   vm->ep = ops + len;
 
-  while ((vm->ip + vm->pc) < vm->ep) {
-    memset(&opc, 0, sizeof(opc));
+  while (vm->ip < vm->ep) {
+    memset(&ins, 0, sizeof(ins));
 
-    if (!read_opc(vm, &opc)) {
-      vm_exit(vm, VM_EOPC);
+    if (!read_ins(vm, &ins)) {
+      vm_exit(vm, VM_EINS);
       goto end;
     }
 
-    if (!chck_opc(vm, &opc)) {
+    if (!chck_ins(vm, &ins)) {
       vm_exit(vm, VM_ECHK);
       goto end;
     }
     
-    eval_opc(vm, &opc);
+    eval_ins(vm, &ins);
 
     if (vm->hlt) {
       // vm_exit() called somewhere
@@ -174,17 +153,6 @@ VM_CALL void vm_exec (struct vm *vm, u8 *ops, szt len)
 /**
  * {@inheritdoc}
  */
-VM_CALL bool vm_args (struct vm *vm, const char *fmt, ...)
-{
-  assert(vm != 0);
-  assert(fmt != 0);
-
-  return false;
-}
-
-/**
- * {@inheritdoc}
- */
 VM_CALL void vm_read (struct vm *vm, szt s, void *o)
 {
   read_mem(vm, s, o);
@@ -193,8 +161,8 @@ VM_CALL void vm_read (struct vm *vm, szt s, void *o)
 /** reads raw memory */
 static bool read_mem (struct vm *vm, szt sz, void *out)
 {
-  memcpy(out, vm->ip + (vm->pc), sz);
-  vm->pc += sz;
+  memcpy(out, vm->ip, sz);
+  vm->ip += sz;
   return true;
 }
 
@@ -202,50 +170,33 @@ static bool read_mem (struct vm *vm, szt sz, void *out)
 static bool read_opc (READ_ARGS)
 {
   u32 bin; // opcode
-  u16 ext; // opcode extra
   
   if (!read_mem(vm, 4, &bin)) {
     // read error, abort
     return false;
   }
 
-  // 4 bits = mode
-  opc->mode = (bin >> 28) & 0xf;
-  // 8 bits = code
-  opc->code = (bin >> 20) & 0xff;
+  // 3 bits = mode
+  ins->mode = (bin >> 29) & 0x7;
+  // 12 bits = code
+  ins->code = (bin >> 17) & 0x3fff;
 
   struct vm_arg 
-    *a0 = opc->args + 0,
-    *a1 = opc->args + 1;
+    *a0 = ins->args + 0,
+    *a1 = ins->args + 1;
 
   // 3 bits = arg 0 type
-  a0->type = (bin >> 17) & 0x7;
-  // 4 bits = arg 0 reg
-  a0->reg = (bin >> 13) & 0xf;
-  // 8 bits = arg 0 off
-  a0->off = (bin >> 5) & 0xff;
+  a0->type = (bin >> 14) & 0x7;
+  // 5 bits = arg 0 reg
+  a0->reg = (bin >> 9) & 0x1f;
 
-  // argument 1 type
-  a1->type = (bin >> 2) & 0x7;
+  // 3 bits = arg 1 type
+  a1->type = (bin >> 6) & 0x7;
+  // 5 bits = arg 1 reg
+  a1->reg = (bin >> 1) & 0x1f;
 
-  // data indicator
-  switch (bin & 0x3) {
-    case EXT_ARG: break;
-    case EXT_END: return true;
-    default:
-      assert(0);
-      return false;
-  }
-
-  if (!read_mem(vm, 2, &ext)) {
-    // read error, discard and abort
-    return false;
-  }
-
-  // 4 bits = arg 1 reg
-  a1->reg = (ext >> 12) & 0xf;
-  // 8 bits = arg 1 off
-  a1->off = (ext >> 4) & 0xff;
+  // 1 bit = displacement
+  ins->dsp = (bin & 1);
 
   return true;
 }
@@ -253,6 +204,12 @@ static bool read_opc (READ_ARGS)
 /** checks the opcode before evaluation */
 static bool chck_opc (EVAL_ARGS)
 {
+  if (ins->args[0].type == ARG_IRM &&
+      ins->args[1].type == ARG_IRM) {
+    vm_warn(vm, "only one argument can "
+                "use memory-addressing");
+    return false;
+  }
   // all checks passed
   return true;
 }
@@ -260,16 +217,16 @@ static bool chck_opc (EVAL_ARGS)
 /** evaluates a opcode */
 static void eval_opc (EVAL_ARGS)
 {
-  if (opc->code == OPI_NOP) {
+  if (ins->code == OPC_NOP) {
     return;
   }
 
-  if (opc->code == OPI_HLT) {
+  if (ins->code == OPC_HLT) {
     vm_exit(vm, VM_EHLT);
     return;
   }
 
-  vm_oph oph = vm->oph[opc->code];
+  vm_oph oph = vm->oph[ins->code];
   
   if (oph == 0) {
     vm_exit(vm, VM_EOPH);
@@ -277,12 +234,11 @@ static void eval_opc (EVAL_ARGS)
   }
 
   #ifndef NDEBUG
-    vm_ops ops = vm->ops[opc->code];
+    vm_ops ops = vm->ops[ins->code];
     printf(
-      "OPCODE: %s (0x%x [%u])\n", 
+      "OPCODE: %s (0x%x)\n", 
       ops ? ops : "(builtin)",
-      opc->code,
-      opc->code
+      ins->code
     );
   #endif
 

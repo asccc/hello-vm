@@ -85,23 +85,10 @@ je nach BITMODE.
 
 ## Displacements
 
-Displacements diesen zur relativen Adressierung von Speicher 
-(bei Speicheradressierung).
-
-Displacements werden beim dekodieren des Bytecodes geladen und direkt mit 
-an die Opcode-Handler übergeben.
-
-Nur eines der beiden Argumente kann ein Displacement besitzen. Entsprechend 
-kann nur eines der beiden Argumene Speicheradressierung nutzen.
+Displacements diesen zur relativen Adressierung von Speicher.
+Da es keine Zuordnung gibt zu welchem Argument ein Displacement gehört,
+kann nur eines der beiden Argumente Speicheradressierung nutzen.
 
 ## Immediates
 
 Immediates werden benutzt um scalare Werte als Argument zu übergeben.
-
-Zum Beispiel: `mov r1, 42` hier wird die Zahl "42" als Immediate übergeben.
-
-Immediates werden während der Ausfühung der Instruktionen geladen. Es können
-beliebig viele Immediates pro Instruktion geladen werden. in den Opcode-Handler
-Funktionen kann selbst entschieden werden wie viele Immediates benötigt werden.
-
-(TODO: Immediate-Flags integrieren)
