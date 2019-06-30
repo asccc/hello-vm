@@ -1,0 +1,26 @@
+.mode 4
+
+echo:
+  push  bp
+  mov   bp, sp
+  sub   sp, 16
+  movq  [bp-8], r1
+  movq  r1, [bp-8]
+  int   puts
+  pop   bp
+  ret
+
+main:
+  push  bp
+  mov   bp, sp
+  sub   sp, 16
+  movq  [bp-14], 8583909746840200552
+  movl  [bp-6], 1684828783
+  movw  [bp-2], 33
+  lea   r1, [bp-14]
+  call  echo
+  mov   r0, 0
+  pop   bp
+  int   exit
+  hlt
+
