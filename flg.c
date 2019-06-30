@@ -2,32 +2,6 @@
 
 #include <stdio.h>
 
-#define SHOULD_BE_INLINED \
-  fprintf(stderr, "calls to %s should be inlined\n", __func__);
-
-
-/**
- * {@inheritdoc}
- */
-FL_CALL calc_zf (struct vm *vm, bool set)
-{
-  SHOULD_BE_INLINED
-  vm->flg.zf = set;
-}
-
-/**
- * {@inheritdoc}
- */
-FL_CALL calc_cf (struct vm *vm, bool set)
-{
-  SHOULD_BE_INLINED
-  vm->flg.cf = set;
-}
-
-#define SGN_8 0x80
-#define SGN_16 0x8000
-#define SGN_32 0x80000000
-
 #define CALC_SF(N,M)             \
   FL_CALL calc_sf_ ## N (        \
     struct vm *vm, u ## N val    \
@@ -40,7 +14,6 @@ CALC_SF(16, SGN_16)
 CALC_SF(32, SGN_32)
 
 #if VM64
-  #define SGN_64 0x8000000000000000
   CALC_SF(64, SGN_64)
 #endif
 

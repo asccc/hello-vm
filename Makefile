@@ -11,8 +11,8 @@ OBJS=$(shell php -r '                             \
 ')
 
 OBJS+=op/math.o
-OBJS+=op/stor.o
-OBJS+=op/flow.o
+# OBJS+=op/stor.o
+# OBJS+=op/flow.o
 
 PROG=hello-vm
 
@@ -25,7 +25,7 @@ dbg: CCFLAGS+=-g
 dbg: gen comp
 
 win: CC=x86_64-w64-mingw32-gcc
-win: PROG=hello-vm.exe
+win: PROG+=.exe
 win: CCFLAGS+=-DNDEBUG -O3
 win: gen comp
 

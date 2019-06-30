@@ -23,13 +23,16 @@
 /** reads raw memory */
 static bool read_mem (struct vm*, szt, void*);
 /** reads a opcode */
-static bool read_opc (READ_ARGS);
+static bool read_ins (READ_ARGS);
+
+/** check the bytecode mode */
+static bool read_mod (struct vm*);
 
 /** checks the opcode before evaluation */
-static bool chck_opc (EVAL_ARGS);
+static bool chck_ins (EVAL_ARGS);
 
 /** evaluates a opcode */
-static void eval_opc (EVAL_ARGS);
+static void eval_ins (EVAL_ARGS);
 
 #define DEFN_OP(N,H,S) do { \
   vm->oph[N] = H;           \
@@ -50,6 +53,7 @@ VM_CALL void vm_init (struct vm *vm)
   vm->ep = 0;
   vm->err = 0;
   vm->hlt = 0;
+  vm->opm = MOD_NONE;
 
   vm->flg.cf = 0;
   vm->flg.of = 0;
@@ -57,7 +61,7 @@ VM_CALL void vm_init (struct vm *vm)
   vm->flg.zf = 0;
 
   // general purpose registers
-  vm->r0 = 1;
+  vm->r0 = 0;
   vm->r1 = 0;
   vm->r2 = 0;
   
@@ -67,14 +71,16 @@ VM_CALL void vm_init (struct vm *vm)
   vm->bp = vm->sp;
 
   // memory boundaries
-  vm->lb = (intptr_t) (vm->mm);
-  vm->ub = (intptr_t) (vm->mm + 64);
+  vm->mn = (intptr_t) (vm->mm);
+  vm->mx = (intptr_t) (vm->mm + 64);
 
   // built-in ops (not dispatched)
   vm->oph[OPC_NOP] = 0;
+  vm->ops[OPC_NOP] = "<nop>";
   vm->oph[OPC_HLT] = 0;
+  vm->ops[OPC_HLT] = "<hlt>";
 
-  #include "vm.tab"
+  #include "vm.inc"
 }
 
 VM_CALL void vm_exit (struct vm *vm, enum vm_err err)
@@ -125,6 +131,12 @@ VM_CALL void vm_exec (struct vm *vm, u8 *ops, szt len)
   vm->ip = ops;
   vm->ep = ops + len;
 
+  // read bytecode mode
+  if (!read_mod(vm)) {
+    vm_exit(vm, VM_EMOD);
+    goto end;
+  }
+
   while (vm->ip < vm->ep) {
     memset(&ins, 0, sizeof(ins));
 
@@ -166,8 +178,42 @@ static bool read_mem (struct vm *vm, szt sz, void *out)
   return true;
 }
 
+/** reads the bytecode mode */
+static bool read_mod (struct vm *vm)
+{
+  i32 mod = 0;
+
+  if (!read_mem(vm, sizeof(mod), &mod)) {
+    // read error, abort
+    return false;
+  }
+
+#ifndef NDEBUG
+  printf("head:  %x\n", mod);
+  printf("magic: %x\n", mod & 0x00ffffff);
+  printf("mode:  %x\n", (mod >> 24) & 0xff);
+#endif
+
+  if ((mod & 0x00ffffff) != HVM_NUM) {
+    vm_warn(vm, VM_ESTR_HVM);
+    return false;
+  }
+
+  switch ((mod >> 24) & 0xff) {
+    case MOD_DWORD:
+    case MOD_QWORD:
+      break;
+    default:
+      vm_warn(vm, VM_ESTR_OPM);
+      return false;
+  }
+
+  vm->opm = mod;
+  return true;
+}
+
 /** reads a opcode */
-static bool read_opc (READ_ARGS)
+static bool read_ins (READ_ARGS)
 {
   u32 bin; // opcode
   
@@ -196,18 +242,27 @@ static bool read_opc (READ_ARGS)
   a1->reg = (bin >> 1) & 0x1f;
 
   // 1 bit = displacement
-  ins->dsp = (bin & 1);
+  a0->ext = (bin & 1);
+  a1->ext = (bin & 1);
 
   return true;
 }
 
 /** checks the opcode before evaluation */
-static bool chck_opc (EVAL_ARGS)
+static bool chck_ins (EVAL_ARGS)
 {
+  // undefined opcode
+  if (ins->code >= NUM_OPS) {
+    vm_warn(vm, VM_ESTR_INS);
+  #ifndef NDEBUG
+    printf("opcode number: 0x%x\n", ins->code);
+  #endif
+    return false;
+  }
+  // only one argument can use memory-addressing
   if (ins->args[0].type == ARG_IRM &&
       ins->args[1].type == ARG_IRM) {
-    vm_warn(vm, "only one argument can "
-                "use memory-addressing");
+    vm_warn(vm, VM_ESTR_IRM);
     return false;
   }
   // all checks passed
@@ -215,15 +270,23 @@ static bool chck_opc (EVAL_ARGS)
 }
 
 /** evaluates a opcode */
-static void eval_opc (EVAL_ARGS)
+static void eval_ins (EVAL_ARGS)
 {
-  if (ins->code == OPC_NOP) {
-    return;
-  }
+#ifndef NDEBUG
+  vm_ops ops = vm->ops[ins->code];
+  printf(
+    "OPCODE: %s (0x%x)\n", 
+    ops ? ops : "[built-in]",
+    ins->code
+  );
+#endif
 
-  if (ins->code == OPC_HLT) {
-    vm_exit(vm, VM_EHLT);
-    return;
+  switch (ins->code) {
+    case OPC_NOP:
+      return;
+    case OPC_HLT:
+      vm_exit(vm, VM_EHLT);
+      return;
   }
 
   vm_oph oph = vm->oph[ins->code];
@@ -232,15 +295,6 @@ static void eval_opc (EVAL_ARGS)
     vm_exit(vm, VM_EOPH);
     return;
   }
-
-  #ifndef NDEBUG
-    vm_ops ops = vm->ops[ins->code];
-    printf(
-      "OPCODE: %s (0x%x)\n", 
-      ops ? ops : "(builtin)",
-      ins->code
-    );
-  #endif
 
   (oph)(EVAL_PASS);
 }

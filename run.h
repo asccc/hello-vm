@@ -10,14 +10,14 @@
 
 #define RUN_CALL __attribute__((nonnull))
 
-#if VM_HAS_QWORD
+#if VM64
   #define RUN_EX64 RUN_CALL
 #else
   #define RUN_EX64 RUN_CALL __attribute__((unused))
 #endif
 
-#define RUN_ARGS     \
-  struct vm *vm,     \
+#define RUN_ARGS      \
+  struct vm *vm,      \
   struct vm_arg *arg
 
 #define MEM_ARGS \

@@ -17,7 +17,7 @@
  * @param the virtual machine struct
  * @param the flag setting
  */
-extern FL_CALL calc_zf (struct vm*, bool);
+#define calc_zf(vm, s) (vm)->flg.zf = (s)
 
 /**
  * calculates CF
@@ -25,7 +25,7 @@ extern FL_CALL calc_zf (struct vm*, bool);
  * @param the virtual machine struct
  * @param the flag setting
  */
-extern FL_CALL calc_cf (struct vm*, bool);
+#define calc_cf(vm, s) (vm)->flg.cf = (s)
 
 /**
  * calculates SF

@@ -42,6 +42,7 @@
     u ## S b                 \
   ) {                        \
     u ## S r = a * b;        \
+    calc_zf(vm, r == 0);     \
     return r;                \
   }
 
@@ -57,51 +58,48 @@
       return 0;              \
     }                        \
     u ## S r = a / b;        \
+    calc_zf(vm, r == 0);     \
     return r;                \
   }
 
 #define OP_RM_R(S,F) do {             \
-  mrmw_ ## S (vm, opc->args + 0,      \
+  mrmw_ ## S (vm, ins->args + 0,      \
     F ## _u ## S (vm,                 \
-      mrmr_ ## S (vm, opc->args + 0), \
-      regr_ ## S (vm, opc->args + 1)  \
+      mrmr_ ## S (vm, ins->args + 0), \
+      regr_ ## S (vm, ins->args + 1)  \
     )                                 \
   );                                  \
 } while (0)
 
 #define OP_RM_IMM(S,F) do {           \
-  mrmw_ ## S (vm, opc->args + 0,      \
+  mrmw_ ## S (vm, ins->args + 0,      \
     F ## _u ## S (vm,                 \
-      mrmr_ ## S (vm, opc->args + 0), \
+      mrmr_ ## S (vm, ins->args + 0), \
       immr_ ## S (vm)                 \
     )                                 \
   );                                  \
 } while (0)
 
 #define OP_R_RM(S,F) do {             \
-  regw_ ## S (vm, opc->args + 0,      \
+  regw_ ## S (vm, ins->args + 0,      \
     F ## _u ## S (vm,                 \
-      regr_ ## S (vm, opc->args + 0), \
-      mrmr_ ## S (vm, opc->args + 1)  \
+      regr_ ## S (vm, ins->args + 0), \
+      mrmr_ ## S (vm, ins->args + 1)  \
     )                                 \
   );                                  \
 } while (0)
 
 BINOP_ADD(8)
-BINOP_ADD(16)
 BINOP_ADD(32)
 
 OP_CALL op_add_rm8_r8 (OP_ARGS) { OP_RM_R(8, add); }
 OP_CALL op_add_rm8_imm8 (OP_ARGS) { OP_RM_IMM(8, add); }
 OP_CALL op_add_r8_rm8 (OP_ARGS) { OP_R_RM(8, add); }
-OP_CALL op_add_rm16_r16 (OP_ARGS) { OP_RM_R(16, add); }
-OP_CALL op_add_rm16_imm16 (OP_ARGS) { OP_RM_IMM(16, add); }
-OP_CALL op_add_r16_rm16 (OP_ARGS) { OP_R_RM(16, add); }
 OP_CALL op_add_rm32_r32 (OP_ARGS) { OP_RM_R(32, add); }
 OP_CALL op_add_rm32_imm32 (OP_ARGS) { OP_RM_IMM(32, add); }
 OP_CALL op_add_r32_rm32 (OP_ARGS) { OP_R_RM(32, add); }
 
-#if VM_HAS_QWORD
+#if VM64
   BINOP_ADD(64)
 
   OP_CALL op_add_rm64_r64 (OP_ARGS) { OP_RM_R(64, add); }
@@ -110,20 +108,16 @@ OP_CALL op_add_r32_rm32 (OP_ARGS) { OP_R_RM(32, add); }
 #endif
 
 BINOP_SUB(8)
-BINOP_SUB(16)
 BINOP_SUB(32)
 
 OP_CALL op_sub_rm8_r8 (OP_ARGS) { OP_RM_R(8, sub); }
 OP_CALL op_sub_rm8_imm8 (OP_ARGS) { OP_RM_IMM(8, sub); }
 OP_CALL op_sub_r8_rm8 (OP_ARGS) { OP_R_RM(8, sub); }
-OP_CALL op_sub_rm16_r16 (OP_ARGS) { OP_RM_R(16, sub); }
-OP_CALL op_sub_rm16_imm16 (OP_ARGS) { OP_RM_IMM(16, sub); }
-OP_CALL op_sub_r16_rm16 (OP_ARGS) { OP_R_RM(16, sub); }
 OP_CALL op_sub_rm32_r32 (OP_ARGS) { OP_RM_R(32, sub); }
 OP_CALL op_sub_rm32_imm32 (OP_ARGS) { OP_RM_IMM(32, sub); }
 OP_CALL op_sub_r32_rm32 (OP_ARGS) { OP_R_RM(32, sub); }
 
-#if VM_HAS_QWORD
+#if VM64
   BINOP_SUB(64)
 
   OP_CALL op_sub_rm64_r64 (OP_ARGS) { OP_RM_R(64, sub); }
@@ -137,7 +131,7 @@ OP_CALL op_mul_rm32_r32 (OP_ARGS) { OP_RM_R(32, mul); }
 OP_CALL op_mul_rm32_imm32 (OP_ARGS) { OP_RM_IMM(32, mul); }
 OP_CALL op_mul_r32_rm32 (OP_ARGS) { OP_R_RM(32, mul); }
 
-#if VM_HAS_QWORD
+#if VM64
   BINOP_MUL(64)
 
   OP_CALL op_mul_rm64_r64 (OP_ARGS) { OP_RM_R(64, mul); }
@@ -151,7 +145,7 @@ OP_CALL op_div_rm32_r32 (OP_ARGS) { OP_RM_R(32, div); }
 OP_CALL op_div_rm32_imm32 (OP_ARGS) { OP_RM_IMM(32, div); }
 OP_CALL op_div_r32_rm32 (OP_ARGS) { OP_R_RM(32, div); }
 
-#if VM_HAS_QWORD
+#if VM64
   BINOP_DIV(64)
 
   OP_CALL op_div_rm64_r64 (OP_ARGS) { OP_RM_R(64, div); }
@@ -162,14 +156,11 @@ OP_CALL op_div_r32_rm32 (OP_ARGS) { OP_R_RM(32, div); }
 OP_CALL op_cmp_rm8_r8 (OP_ARGS) { OP_RM_R(8, sub); }
 OP_CALL op_cmp_rm8_imm8 (OP_ARGS) { OP_RM_IMM(8, sub); }
 OP_CALL op_cmp_r8_rm8 (OP_ARGS) { OP_R_RM(8, sub); }
-OP_CALL op_cmp_rm16_r16 (OP_ARGS) { OP_RM_R(16, sub); }
-OP_CALL op_cmp_rm16_imm16 (OP_ARGS) { OP_RM_IMM(16, sub); }
-OP_CALL op_cmp_r16_rm16 (OP_ARGS) { OP_R_RM(16, sub); }
 OP_CALL op_cmp_rm32_r32 (OP_ARGS) { OP_RM_R(32, sub); }
 OP_CALL op_cmp_rm32_imm32 (OP_ARGS) { OP_RM_IMM(32, sub); }
 OP_CALL op_cmp_r32_rm32 (OP_ARGS) { OP_R_RM(32, sub); }
 
-#if VM_HAS_QWORD
+#if VM64
   OP_CALL op_cmp_rm64_r64 (OP_ARGS) { OP_RM_R(64, sub); }
   OP_CALL op_cmp_rm64_imm64 (OP_ARGS) { OP_RM_IMM(64, sub); }
   OP_CALL op_cmp_r64_rm64 (OP_ARGS) { OP_R_RM(64, sub); }

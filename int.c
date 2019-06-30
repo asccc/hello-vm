@@ -22,8 +22,6 @@ INT_FUNC(dump)
 { 
   printf(
     "VM STATE {\n"
-    "  PC = %u\n"
-  	"  ST = %u\n"
     "  IP = %p\n"
     "  EP = %p\n"
     "  MM = %p\n"
@@ -37,8 +35,6 @@ INT_FUNC(dump)
     "  HLT = %u\n"
     "  ERR = %u\n"
     "}\n",
-    vm->pc,
-    vm->st,
     vm->ip,
     vm->ep,
     vm->mm,
@@ -54,16 +50,16 @@ INT_FUNC(dump)
   );
 
   printf(
-    "VM FLAGS {"
+    "VM FLAGS {\n"
     "  ZF = %u\n"
     "  CF = %u\n"
     "  SF = %u\n"
     "  OF = %u\n"
     "}\n",
-    vm->st & FLG_ZF ? 1 : 0,
-    vm->st & FLG_CF ? 1 : 0,
-    vm->st & FLG_SF ? 1 : 0,
-    vm->st & FLG_OF ? 1 : 0
+    vm->flg.zf,
+    vm->flg.cf,
+    vm->flg.sf,
+    vm->flg.of
   );
 }
 
