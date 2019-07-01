@@ -66,7 +66,7 @@ je nach BITMODE.
   - ...
   - 111 = Reserviert
 
-### 5 bits zur Identifikation des ersten Registers
+### 5 bits zur Identifikation des zweiten Registers
   - 00000 = unused
   - 00001 = SP
   - 00010 = BP

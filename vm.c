@@ -199,7 +199,7 @@ static bool read_mod (struct vm *vm)
     return false;
   }
 
-  switch ((mod >> 24) & 0xff) {
+  switch (mod = (mod >> 24) & 0xff) {
     case MOD_DWORD:
     case MOD_QWORD:
       break;
