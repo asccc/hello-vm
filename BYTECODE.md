@@ -1,13 +1,6 @@
 # Bytecode
 
-Ein Opcode mit einem Addressierungs-Argument 
-ist 32bits (4 bytes) groß.
-
-Ein Opcode mit zwei Addressierungs-Argumenten 
-ist 48bits (6 bytes) groß.
-
-Je nach Anforderung kann ein Opcode mit 
-einem Immediate je nach Modus wachsen.
+Ein Opcode ist 32bits groß.
 
 Die Größe eines Opcodes + Immediate variiert 
 je nach BITMODE.
