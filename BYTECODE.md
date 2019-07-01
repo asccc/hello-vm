@@ -2,14 +2,6 @@
 
 Ein Opcode ist 32bits groß.
 
-Die Größe eines Opcodes + Immediate variiert 
-je nach BITMODE.
-
-- 8bit = 32bit opcode + 8bit immediate
-- 16bit = 32bit opcode + 16bit immediate
-- 32bit = 32bit opcode + 32bit immediate
-- 64bit = 32bit opcode + 64bit immediate
-
 ## Bitset
 
 ### 3 bits für den gewünschten Modus
@@ -82,6 +74,20 @@ Displacements diesen zur relativen Adressierung von Speicher.
 Da es keine Zuordnung gibt zu welchem Argument ein Displacement gehört,
 kann nur eines der beiden Argumente Speicheradressierung nutzen.
 
+Displacements werden automatisch bei der Speicheradressierung geladen.
+
+Die Größe von Displacements richtet sich nach der (kompilierenden) Platform.
+Bei 32bit Machinen werden 32bit Displacements genutzt. 
+Bei 64bit Machinen entsprechend 64bit Displacements.
+
+Hierbei spielt der Opcode-Modus keine Rolle.
+
 ## Immediates
 
-Immediates werden benutzt um scalare Werte als Argument zu übergeben.
+Immediates werden benutzt um scalare Werte als Argumente zu übergeben.
+
+Immediates müssen von den Opcode-Handlern geladen werden. Es können
+beliebig viele Werte genutzt werden (sofern diese im Bytecode 
+hinterlegt wurden). Ebenfalls ist die größe von Immediates nicht 
+vordefiniert. D.h. theoretisch kann ein 8bit Opcode ein 64bit
+Immediate laden.
