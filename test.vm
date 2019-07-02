@@ -21,6 +21,6 @@ main:
   call  echo
   mov   r0, 0
   pop   bp
+  mov   r1, 0
   int   exit
   hlt
-

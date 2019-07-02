@@ -1,3 +1,12 @@
 DEFN_OP(OPC_ADD_RM8_R8, op_add_rm8_r8, "op_add_rm8_r8");
 DEFN_OP(OPC_ADD_RM8_IMM8, op_add_rm8_imm8, "op_add_rm8_imm8");
 DEFN_OP(OPC_ADD_R8_RM8, op_add_r8_rm8, "op_add_r8_rm8");
+DEFN_OP(OPC_ADD_RM16_R16, op_add_rm16_r16, "op_add_rm16_r16");
+DEFN_OP(OPC_ADD_RM16_IMM16, op_add_rm16_imm16, "op_add_rm16_imm16");
+DEFN_OP(OPC_ADD_R16_RM16, op_add_r16_rm16, "op_add_r16_rm16");
+DEFN_OP(OPC_ADD_RM32_R32, op_add_rm32_r32, "op_add_rm32_r32");
+DEFN_OP(OPC_ADD_RM32_IMM32, op_add_rm32_imm32, "op_add_rm32_imm32");
+DEFN_OP(OPC_ADD_R32_RM32, op_add_r32_rm32, "op_add_r32_rm32");
+DEFN_OP(OPC_ADD_RM64_R64, op_add_rm64_r64, "op_add_rm64_r64");
+DEFN_OP(OPC_ADD_RM64_IMM64, op_add_rm64_imm64, "op_add_rm64_imm64");
+DEFN_OP(OPC_ADD_R64_RM64, op_add_r64_rm64, "op_add_r64_rm64");

@@ -225,7 +225,7 @@ static bool read_ins (READ_ARGS)
   // 3 bits = mode
   ins->mode = (bin >> 29) & 0x7;
   // 12 bits = code
-  ins->code = (bin >> 17) & 0x3fff;
+  ins->code = (bin >> 17) & 0xfff;
 
   struct vm_arg 
     *a0 = ins->args + 0,

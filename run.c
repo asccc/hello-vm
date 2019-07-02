@@ -12,7 +12,6 @@ RUN_INTR vm_dsp dspr_a (
   struct vm_arg *arg
 ) {
 #if VM64
-
   if (vm->opm == MOD_DWORD) {
     // read a signed 32bit value
     i32 off = 0;
@@ -23,9 +22,7 @@ RUN_INTR vm_dsp dspr_a (
   i64 off = 0;
   vm_read(vm, sizeof(off), &off);
   return off;
-
 #else
-
   if (vm->opm == MOD_QWORD) {
     // read a signed 64bit value
     i64 off = 0;
@@ -36,7 +33,6 @@ RUN_INTR vm_dsp dspr_a (
   i32 off = 0;
   vm_read(vm, sizeof(off), &off);
   return off;
-
 #endif
 }
 

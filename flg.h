@@ -17,7 +17,7 @@
  * @param the virtual machine struct
  * @param the flag setting
  */
-#define calc_zf(vm, s) (vm)->flg.zf = (s)
+#define calc_zf(vm, s) (vm)->flg.zf = !(s)
 
 /**
  * calculates CF

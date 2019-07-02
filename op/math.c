@@ -90,11 +90,15 @@
 } while (0)
 
 BINOP_ADD(8)
+BINOP_ADD(16)
 BINOP_ADD(32)
 
 OP_CALL op_add_rm8_r8 (OP_ARGS) { OP_RM_R(8, add); }
 OP_CALL op_add_rm8_imm8 (OP_ARGS) { OP_RM_IMM(8, add); }
 OP_CALL op_add_r8_rm8 (OP_ARGS) { OP_R_RM(8, add); }
+OP_CALL op_add_rm16_r16 (OP_ARGS) { OP_RM_R(16, add); }
+OP_CALL op_add_rm16_imm16 (OP_ARGS) { OP_RM_IMM(16, add); }
+OP_CALL op_add_r16_rm16 (OP_ARGS) { OP_R_RM(16, add); }
 OP_CALL op_add_rm32_r32 (OP_ARGS) { OP_RM_R(32, add); }
 OP_CALL op_add_rm32_imm32 (OP_ARGS) { OP_RM_IMM(32, add); }
 OP_CALL op_add_r32_rm32 (OP_ARGS) { OP_R_RM(32, add); }
