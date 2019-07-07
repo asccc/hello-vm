@@ -25,7 +25,7 @@ dbg: CCFLAGS+=-g
 dbg: gen comp
 
 win: CC=x86_64-w64-mingw32-gcc
-win: PROG+=.exe
+win: PROG:=$(PROG).exe
 win: CCFLAGS+=-DNDEBUG -O3
 win: gen comp
 
