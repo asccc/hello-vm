@@ -1,63 +1,24 @@
 #include "run.h"
 
 /**
- * Intrinsic functions
+ * Displacement API
  */
 
-#define RUN_INTR static inline \
-  __attribute__((always_inline, nonnull))
-
-RUN_INTR vm_dsp dspr_a (
-  struct vm *vm,
-  struct vm_arg *arg
-) {
-#if VM64
-  if (vm->opm == MOD_DWORD) {
-    // read a signed 32bit value
-    i32 off = 0;
-    vm_read(vm, sizeof(off), &off);
-    // sign-extend to 64bit
-    return (i64) off;
-  }
-  i64 off = 0;
-  vm_read(vm, sizeof(off), &off);
-  return off;
-#else
-  if (vm->opm == MOD_QWORD) {
-    // read a signed 64bit value
-    i64 off = 0;
-    vm_read(vm, sizeof(off), &off);
-    // sign-reduce to 32bit
-    return (i32) off;
-  }
-  i32 off = 0;
-  vm_read(vm, sizeof(off), &off);
-  return off;
-#endif
-}
-
-RUN_INTR intptr_t regr_a (
-  struct vm *vm, 
-  struct vm_arg *arg
-) {
-  vm_dsp dsp = 
-    arg->ext ? dspr_a(vm, arg) : 0;
-  switch (arg->reg) {
-    case REG_R0: return vm->r0 + dsp;
-    case REG_R1: return vm->r1 + dsp;
-    case REG_R2: return vm->r2 + dsp;
-    case REG_BP: return vm->bp + dsp;
-    case REG_SP: return vm->sp + dsp;
-    case REG_DS: return vm->ds + dsp;
-    case REG_CS: return vm->cs + dsp;
+RUN_CALL intptr_t dspr_a (DSP_ARGS) 
+{
+  switch (vm->opm) {
+    case MOD_DWORD: {
+      i32 dsp = 0;
+      vm_read(vm, sizeof(dsp), &dsp);
+      return (intptr_t) dsp;
+    }
+    case MOD_QWORD: {
+      i64 dsp = 0;
+      vm_read(vm, sizeof(dsp), &dsp);
+      return (intptr_t) dsp;
+    }
     default:
-      if (arg->ext) {
-        // of no register was specified
-        // but a displacement is set
-        return (intptr_t) dsp;
-      }
-      // no register and no displacement
-      vm_exit(vm, VM_EUNKR);
+      vm_exit(vm, VM_EMOD);
       return 0;
   }
 }
@@ -106,16 +67,58 @@ MEMW(32)
   MEMW(64)
 #endif
 
+RUN_CALL void memw_a (MEM_ARGS, intptr_t val)
+{
+#if VM64
+  memw_64(MEM_PASS, val);
+#else
+  memw_32(MEM_PASS, val);
+#endif
+}
+
+RUN_CALL intptr_t memr_a (MEM_ARGS)
+{
+#if VM64
+  return (intptr_t) memr_64(MEM_PASS);
+#else
+  return (intptr_t) memr_32(MEM_PASS);
+#endif
+}
+
 /**
  * ModR/M API
  */
+
+RUN_CALL intptr_t mrm_rd (RUN_ARGS) 
+{
+  intptr_t dsp = 
+    arg->ext ? dspr_a(vm) : 0;
+  switch (arg->reg) {
+    case REG_R0: return vm->r0 + dsp;
+    case REG_R1: return vm->r1 + dsp;
+    case REG_R2: return vm->r2 + dsp;
+    case REG_BP: return vm->bp + dsp;
+    case REG_SP: return vm->sp + dsp;
+    case REG_DS: return vm->ds + dsp;
+    case REG_CS: return vm->cs + dsp;
+    default:
+      if (arg->ext) {
+        // if no register was specified
+        // but a displacement is set
+        return dsp;
+      }
+      // no register and no displacement
+      vm_exit(vm, VM_EUNKR);
+      return 0;
+  }
+}
 
 #define MRMW(N)                                   \
   RUN_CALL void mrmw_ ## N (RUN_ARGS, u ## N val) \
   {                                               \
     switch (arg->type) {                          \
       case ARG_IRM:                               \
-        memw_ ## N (vm, regr_a(vm, arg), val);    \
+        memw_ ## N (vm, mrm_rd(vm, arg), val);    \
         break;                                    \
       case ARG_REG:                               \
         regw_ ## N (vm, arg, val);                \
@@ -130,7 +133,7 @@ MEMW(32)
   {                                               \
     switch (arg->type) {                          \
       case ARG_IRM:                               \
-        return memr_ ## N (vm, regr_a(vm, arg));  \
+        return memr_ ## N (vm, mrm_rd(vm, arg));  \
       case ARG_REG:                               \
         return regr_ ## N (vm, arg);              \
       default:                                    \
@@ -165,12 +168,6 @@ MRMW(32)
         return vm->r1;                            \
       case REG_R2:                                \
         return vm->r2;                            \
-    }                                             \
-    if (sizeof(intptr_t) != (N / 8u)) {           \
-      vm_exit(vm, VM_EIPSZ);                      \
-      return 0;                                   \
-    }                                             \
-    switch (arg->reg) {                           \
       case REG_BP:                                \
         return vm->bp;                            \
       case REG_SP:                                \
@@ -196,17 +193,13 @@ MRMW(32)
         vm->r2 &= M;                              \
         vm->r2 |= val;                            \
         return;                                   \
-    }                                             \
-    if (sizeof(intptr_t) != (N / 8u)) {           \
-      vm_exit(vm, VM_EIPSZ);                      \
-      return;                                     \
-    }                                             \
-    switch (arg->reg) {                           \
       case REG_BP:                                \
-        vm->bp = val;                             \
+        vm->bp &= M;                              \
+        vm->bp |= val;                            \
         return;                                   \
       case REG_SP:                                \
-        vm->sp = val;                             \
+        vm->sp &= M;                              \
+        vm->sp |= val;                            \
         return;                                   \
     }                                             \
     vm_exit(vm, VM_EUNKR);                        \
@@ -228,12 +221,12 @@ REGW(32, MSK_32)
  * Immediate API
  */
 
-#define IMMR(N)                              \
-  RUN_CALL u ## N immr_ ## N (struct vm *vm) \
-  {                                          \
-    u ## N out = 0;                          \
-    vm_read(vm, (N / 8u), &out);             \
-    return out;                              \
+#define IMMR(N)                         \
+  RUN_CALL u ## N immr_ ## N (IMM_ARGS) \
+  {                                     \
+    u ## N out = 0;                     \
+    vm_read(vm, (N / 8u), &out);        \
+    return out;                         \
   }
 
 IMMR(8)

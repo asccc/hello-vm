@@ -3,6 +3,7 @@
 #include "run.h"
 
 #include "op.h"
+#include "int.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -52,7 +53,7 @@ VM_CALL void vm_init (struct vm *vm)
   vm->ip = 0;
   vm->ep = 0;
   vm->err = 0;
-  vm->hlt = 0;
+  vm->hlt = false;
   vm->opm = MOD_NONE;
 
   vm->flg.cf = 0;
@@ -66,13 +67,13 @@ VM_CALL void vm_init (struct vm *vm)
   vm->r2 = 0;
   
   // initialize stack
-  vm->mm = mem_aodt(64);
-  vm->sp = (intptr_t) (vm->mm + 64);
+  vm->mm = mem_aodt(128);
+  vm->sp = (intptr_t) (vm->mm + 128);
   vm->bp = vm->sp;
 
   // memory boundaries
   vm->mn = (intptr_t) (vm->mm);
-  vm->mx = (intptr_t) (vm->mm + 64);
+  vm->mx = (intptr_t) (vm->mm + 128);
 
   // built-in ops (not dispatched)
   vm->oph[OPC_NOP] = 0;
@@ -112,6 +113,7 @@ VM_CALL void vm_free (struct vm *vm)
 {
   assert(vm != 0);
   // clear program
+  vm->pp = 0;
   vm->ip = 0;
   vm->ep = 0;
   // release memory
@@ -128,6 +130,7 @@ VM_CALL void vm_exec (struct vm *vm, u8 *ops, szt len)
 
   struct vm_ins ins;
   
+  vm->pp = ops;
   vm->ip = ops;
   vm->ep = ops + len;
 
@@ -189,9 +192,9 @@ static bool read_mod (struct vm *vm)
   }
 
 #ifndef NDEBUG
-  printf("head:  %x\n", mod);
-  printf("magic: %x\n", mod & 0x00ffffff);
-  printf("mode:  %x\n", (mod >> 24) & 0xff);
+  printf("HEAD:  %x\n", mod);
+  printf("MAGIC: %x\n", mod & 0x00ffffff);
+  printf("MODE:  %x\n", (mod >> 24) & 0xff);
 #endif
 
   if ((mod & 0x00ffffff) != HVM_NUM) {
@@ -207,6 +210,10 @@ static bool read_mod (struct vm *vm)
       vm_warn(vm, VM_ESTR_OPM);
       return false;
   }
+
+#ifndef NDEBUG
+  puts("CODE LOADED");
+#endif
 
   vm->opm = mod;
   return true;

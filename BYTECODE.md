@@ -70,24 +70,23 @@ Ein Opcode ist 32bits groß.
 
 ## Displacements
 
-Displacements diesen zur relativen Adressierung von Speicher.
-Da es keine Zuordnung gibt zu welchem Argument ein Displacement gehört,
-kann nur eines der beiden Argumente Speicheradressierung nutzen.
-
-Displacements werden automatisch bei der Speicheradressierung geladen.
+Displacements diesen zur relativen Adressierung von Speicher und
+werden automatisch bei der Speicheradressierung geladen.
 
 Die Größe von Displacements richtet sich nach der (kompilierenden) Platform.
-Bei 32bit Machinen werden 32bit Displacements genutzt. 
-Bei 64bit Machinen entsprechend 64bit Displacements.
 
-Hierbei spielt der Opcode-Modus keine Rolle.
+Wurde der Bytecode auf einer 32bit Platform erzeugt, 
+werden 32bit displacements geladen.
+
+Wurde der Bytecode auf einer 64bit Platform erzeugt, 
+werden 64bit displacements geladen.
+
+Displacements werden immer auf entsprechende "Word" Größe 
+erweitert oder verringert. Hierbei spielt der Opcode-Modus keine Rolle.
 
 ## Immediates
 
 Immediates werden benutzt um scalare Werte als Argumente zu übergeben.
 
-Immediates müssen von den Opcode-Handlern geladen werden. Es können
-beliebig viele Werte genutzt werden (sofern diese im Bytecode 
-hinterlegt wurden). Ebenfalls ist die größe von Immediates nicht 
-vordefiniert. D.h. theoretisch kann ein 8bit Opcode ein 64bit
-Immediate laden.
+Hierbei ist der Opcode-Modus ausschlaggebend wieviele Bytes für eine
+Instruktion geladen werden.

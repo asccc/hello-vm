@@ -22,6 +22,7 @@ INT_FUNC(dump)
 { 
   printf(
     "VM STATE {\n"
+    "  PP = %p\n"
     "  IP = %p\n"
     "  EP = %p\n"
     "  MM = %p\n"
@@ -35,6 +36,7 @@ INT_FUNC(dump)
     "  HLT = %u\n"
     "  ERR = %u\n"
     "}\n",
+    vm->pp,
     vm->ip,
     vm->ep,
     vm->mm,

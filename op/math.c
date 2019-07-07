@@ -112,11 +112,15 @@ OP_CALL op_add_r32_rm32 (OP_ARGS) { OP_R_RM(32, add); }
 #endif
 
 BINOP_SUB(8)
+BINOP_SUB(16)
 BINOP_SUB(32)
 
 OP_CALL op_sub_rm8_r8 (OP_ARGS) { OP_RM_R(8, sub); }
 OP_CALL op_sub_rm8_imm8 (OP_ARGS) { OP_RM_IMM(8, sub); }
 OP_CALL op_sub_r8_rm8 (OP_ARGS) { OP_R_RM(8, sub); }
+OP_CALL op_sub_rm16_r16 (OP_ARGS) { OP_RM_R(16, sub); }
+OP_CALL op_sub_rm16_imm16 (OP_ARGS) { OP_RM_IMM(16, sub); }
+OP_CALL op_sub_r16_rm16 (OP_ARGS) { OP_R_RM(16, sub); }
 OP_CALL op_sub_rm32_r32 (OP_ARGS) { OP_RM_R(32, sub); }
 OP_CALL op_sub_rm32_imm32 (OP_ARGS) { OP_RM_IMM(32, sub); }
 OP_CALL op_sub_r32_rm32 (OP_ARGS) { OP_R_RM(32, sub); }
@@ -160,6 +164,9 @@ OP_CALL op_div_r32_rm32 (OP_ARGS) { OP_R_RM(32, div); }
 OP_CALL op_cmp_rm8_r8 (OP_ARGS) { OP_RM_R(8, sub); }
 OP_CALL op_cmp_rm8_imm8 (OP_ARGS) { OP_RM_IMM(8, sub); }
 OP_CALL op_cmp_r8_rm8 (OP_ARGS) { OP_R_RM(8, sub); }
+OP_CALL op_cmp_rm16_r16 (OP_ARGS) { OP_RM_R(16, sub); }
+OP_CALL op_cmp_rm16_imm16 (OP_ARGS) { OP_RM_IMM(16, sub); }
+OP_CALL op_cmp_r16_rm16 (OP_ARGS) { OP_R_RM(16, sub); }
 OP_CALL op_cmp_rm32_r32 (OP_ARGS) { OP_RM_R(32, sub); }
 OP_CALL op_cmp_rm32_imm32 (OP_ARGS) { OP_RM_IMM(32, sub); }
 OP_CALL op_cmp_r32_rm32 (OP_ARGS) { OP_R_RM(32, sub); }

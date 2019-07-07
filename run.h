@@ -16,17 +16,18 @@
   #define RUN_EX64 RUN_CALL __attribute__((unused))
 #endif
 
-#define RUN_ARGS      \
-  struct vm *vm,      \
-  struct vm_arg *arg
+#define DSP_ARGS struct vm *vm
+#define IMM_ARGS struct vm *vm
+#define RUN_ARGS struct vm *vm, struct vm_arg *arg
 
-#define MEM_ARGS \
-  struct vm *vm, \
-  intptr_t ptr
+#define MEM_ARGS struct vm *vm, intptr_t ptr
+#define MEM_PASS vm, ptr
 
 /**
  * Memory API
  */
+
+extern RUN_CALL intptr_t mrm_rd (RUN_ARGS);
 
 extern RUN_CALL void memw_8 (MEM_ARGS, u8);
 extern RUN_CALL u8   memr_8 (MEM_ARGS);
@@ -36,6 +37,9 @@ extern RUN_CALL void memw_32 (MEM_ARGS, u32);
 extern RUN_CALL u32  memr_32 (MEM_ARGS);
 extern RUN_EX64 void memw_64 (MEM_ARGS, u64);
 extern RUN_EX64 u64  memr_64 (MEM_ARGS);
+
+extern RUN_CALL void     memw_a (MEM_ARGS, intptr_t);
+extern RUN_CALL intptr_t memr_a (MEM_ARGS);
 
 /**
  * ModR/M API
@@ -49,6 +53,9 @@ extern RUN_CALL void mrmw_32 (RUN_ARGS, u32);
 extern RUN_CALL u32  mrmr_32 (RUN_ARGS);
 extern RUN_EX64 void mrmw_64 (RUN_ARGS, u64);
 extern RUN_EX64 u64  mrmr_64 (RUN_ARGS);
+
+extern RUN_CALL void     mrmw_a (RUN_ARGS, intptr_t);
+extern RUN_CALL intptr_t mrmr_a (RUN_ARGS);
 
 /**
  * Register API
@@ -67,7 +74,13 @@ extern RUN_EX64 u64  regr_64 (RUN_ARGS);
  * Immediate API
  */
 
-extern RUN_CALL u8  immr_8 (struct vm*);
-extern RUN_CALL u16 immr_16 (struct vm*);
-extern RUN_CALL u32 immr_32 (struct vm*);
-extern RUN_EX64 u64 immr_64 (struct vm*);
+extern RUN_CALL u8  immr_8 (IMM_ARGS);
+extern RUN_CALL u16 immr_16 (IMM_ARGS);
+extern RUN_CALL u32 immr_32 (IMM_ARGS);
+extern RUN_EX64 u64 immr_64 (IMM_ARGS);
+
+/**
+ * Displacement API
+ */
+
+extern RUN_CALL intptr_t dspr_a (DSP_ARGS);

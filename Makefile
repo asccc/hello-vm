@@ -11,8 +11,8 @@ OBJS=$(shell php -r '                             \
 ')
 
 OBJS+=op/math.o
-# OBJS+=op/stor.o
-# OBJS+=op/flow.o
+OBJS+=op/stor.o
+OBJS+=op/flow.o
 
 PROG=hello-vm
 

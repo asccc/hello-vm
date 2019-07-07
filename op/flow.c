@@ -2,8 +2,16 @@
 #include "../int.h"
 #include "../run.h"
 
+#include <stdio.h>
+
+/** reads a displacement and jumps to it */
+static void jump_dsp (struct vm*);
+/** reads a displacement and discards it */
+static void skip_dsp (struct vm*);
+
 #define CHCK_JMP(O) do {         \
-  if ((vm->ip + (O)) > vm->ep) { \
+  if ((O) > (intptr_t) vm->ep || \
+      (O) < (intptr_t) vm->pp) { \
     vm_exit(vm, VM_EJMPB);       \
     return;                      \
   }                              \
@@ -18,84 +26,94 @@ OP_CALL op_int (OP_ARGS)
 OP_CALL op_call (OP_ARGS)
 {
   // @TODO: define a dedicated stack api?
-  // >> push pc
-  // >> mov  pc, imm32
-  u32 pc = immr_32(vm);
-  CHCK_JMP(pc);
-  vm->sp -= 4;
-  memw_32(vm, vm->sp, vm->pc);
-  vm->pc = pc;
+  // >> push ip
+  // >> mov  ip, dsp
+  intptr_t ip = dspr_a(vm);
+  CHCK_JMP(ip);
+  vm->sp -= sizeof(ip);
+  memw_a(vm, vm->sp, (intptr_t) vm->ip);
+  vm->ip = (u8*) ip;
 }
 
 OP_CALL op_ret (OP_ARGS)
 {
   // @TODO: define a dedicated stack api?
-  // >> pop  pc
-  u32 pc = memr_32(vm, vm->sp);
-  CHCK_JMP(pc);
-  vm->pc = pc;
-  vm->sp += 4;
+  // >> pop  ip
+  intptr_t ip = memr_a(vm, vm->sp);
+  CHCK_JMP(ip);
+  vm->ip = (u8*) ip;
+  vm->sp += sizeof(ip);
 }
 
 OP_CALL op_jmp (OP_ARGS)
 {
-  u32 pc = immr_32(vm);
-  CHCK_JMP(pc);
-  vm->pc = pc;
+  jump_dsp(vm);
 }
 
 OP_CALL op_jz (OP_ARGS)
 {
-  if (vm_fchk(vm, FLG_ZF)) {
-    u32 pc = immr_32(vm);
-    CHCK_JMP(pc);
-    vm->pc = pc;
+  if (vm->flg.zf) {
+    jump_dsp(vm);
+    return;
   }
+  skip_dsp(vm);
 }
 
 OP_CALL op_jnz (OP_ARGS)
 {
-  if (!vm_fchk(vm, FLG_ZF)) {
-    u32 pc = immr_32(vm);
-    CHCK_JMP(pc);
-    vm->pc = pc;
+  if (!vm->flg.zf) {
+    jump_dsp(vm);
+    return;
   }
+  skip_dsp(vm);
 }
 
 OP_CALL op_jb (OP_ARGS)
 {
-  if (vm_fchk(vm, FLG_CF)) {
-    u32 pc = immr_32(vm);
-    CHCK_JMP(pc);
-    vm->pc = pc;
+  if (vm->flg.cf) {
+    jump_dsp(vm);
+    return;
   }
+  skip_dsp(vm);
 }
 
 OP_CALL op_jnb (OP_ARGS)
 {
-  if (!vm_fchk(vm, FLG_CF)) {
-    u32 pc = immr_32(vm);
-    CHCK_JMP(pc);
-    vm->pc = pc;
+  if (!vm->flg.cf) {
+    jump_dsp(vm);
+    return;
   }
+  skip_dsp(vm);
 }
 
 OP_CALL op_jbe (OP_ARGS)
 {
-  if (vm_fchk(vm, FLG_CF) ||
-      vm_fchk(vm, FLG_ZF)) {
-    u32 pc = immr_32(vm);
-    CHCK_JMP(pc);
-    vm->pc = pc;
+  if (vm->flg.cf || vm->flg.zf) {
+    jump_dsp(vm);
+    return;
   }
+  skip_dsp(vm);
 }
 
 OP_CALL op_ja (OP_ARGS)
 {
-  if (vm_fchk(vm, FLG_CF) &&
-      vm_fchk(vm, FLG_ZF)) {
-    u32 pc = immr_32(vm);
-    CHCK_JMP(pc);
-    vm->pc = pc;
+  if (vm->flg.cf && vm->flg.zf) {
+    jump_dsp(vm);
+    return;
   }
+  skip_dsp(vm);
+}
+
+/** reads a displacement and jumps to it */
+static void jump_dsp (struct vm *vm)
+{
+  intptr_t ip = dspr_a(vm);
+  CHCK_JMP(ip);
+  vm->ip = (u8*) ip;
+}
+
+/** reads a displacement and discards it */
+static void skip_dsp (struct vm *vm)
+{
+  (void) dspr_a(vm);
 }
