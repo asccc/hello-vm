@@ -26,16 +26,28 @@ static u32 make_opc (
 }
 
 void code1 (u8 **p,  u8 n) 
-{ memcpy(*p, &n, 1); *p += 1; }
+{ 
+  memcpy(*p, &n, 1); 
+  *p += 1;
+}
 
 void code2 (u8 **p, u16 n) 
-{ memcpy(*p, &n, 2); *p += 2; }
+{ 
+  memcpy(*p, &n, 2); 
+  *p += 2; 
+}
 
 void code4 (u8 **p, u32 n) 
-{ memcpy(*p, &n, 4); *p += 4; }
+{ 
+  memcpy(*p, &n, 4); 
+  *p += 4; 
+}
 
 void code8 (u8 **p, u64 n) 
-{ memcpy(*p, &n, 8); *p += 8; }
+{ 
+  memcpy(*p, &n, 8); 
+  *p += 8; 
+}
 
 int main (void)
 {
