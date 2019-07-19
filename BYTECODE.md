@@ -1,18 +1,22 @@
-# Bytecode
+# Header
 
-Ein Opcode ist 32bits groß.
+Der Bytecode Header ist 32bits (4 Bytes) groß und beinhaltet die sog.
+Magic-Bytes und den Bytecode Modus (32bit oder 64bit)
 
-## Bitset
+## 24 bits Magic-Bytes
 
-### 3 bits für den gewünschten Modus
-  - 000 = Irrelevant
-  - 001 = BYTE
-  - 010 = WORD
-  - 011 = DWORD
-  - 100 = QWORD
-  - 101 = Reserviert
-  - 110 = Reserviert
-  - 111 = Reserviert
+Es folgen 3 Bytes mit den ASCII Werten 'H' 'V' 'M'
+
+## 8 bit für den Modus
+  - 00000000 = Reserviert
+  - ...      = Reserviert
+  - 00000011 = 32bit Modus
+  - 00000100 = 64bit Modus
+  - 00000101 = Reserviert
+  - ...
+  - 11111111 = Reserviert
+
+# Opcode start (16bit)
 
 ### 12 bits für den gewünschten Opcode
   - 000000000000 = Reserviert
@@ -20,17 +24,24 @@ Ein Opcode ist 32bits groß.
   - 000000000010 = sub
   - ...
 
-### 3 bits für das erste Argument
-  - 000 = Kein Argument
-  - 001 = Speicheraddressierung
-  - 010 = Registeradressierung
-  - 011 = Immediate
-  - 100 = Reserviert
+### 4 bits für die Anzahl an Argumenten
+  - 0000 = Keine Argumente
+  - 0001 = Ein Argument
+  - 0010 = Zwei Argumente
+  - 0011 = Reserviert
   - ...
-  - 111 = Reserviert
+  - 1111 = Reserviert
 
-### 5 bits zur Identifikation des ersten Registers
-  - 00000 = unused
+# Argument  (8bit)
+
+### 2 bits zur Adressierung
+  - 00 = Kein Argument
+  - 01 = Speicheraddressierung
+  - 10 = Registeradressierung
+  - 11 = Reserviert
+
+### 5 bits zur Identifikation des Registers
+  - 00000 = Kein Register
   - 00001 = SP
   - 00010 = BP
   - 00011 = DS
@@ -42,51 +53,18 @@ Ein Opcode ist 32bits groß.
   - ...
   - 11111 = Reserviert
 
-### 3 bits für das zweite Argument
-  - 000 = Kein Argument
-  - 001 = Speicheraddressierung
-  - 010 = Registeradressierung
-  - 011 = Immediate
-  - 100 = Reserviert
-  - ...
-  - 111 = Reserviert
+# 1 bit als Displacement-Indikator
+  - 0 = Kein Displacement
+  - 1 = Es folgt ein Displacement
 
-### 5 bits zur Identifikation des zweiten Registers
-  - 00000 = unused
-  - 00001 = SP
-  - 00010 = BP
-  - 00011 = DS
-  - 00100 = CS
-  - 00101 = R0
-  - 00110 = R1
-  - 00111 = R2
-  - 01000 = Reserviert
-  - ...
-  - 11111 = Reserviert
+# Displacements
 
-### 1 bit als Displacement Indikator
-  - 0 = Es folgt kein Displacement
-  - 1 = Es folgt ein je nach Modus 1, 2, 4 oder 8 Byte Displacement
+Die Größe des Displacements richtet sich nach dem 
+Bytecode-Modus (4 oder 8 Byte).
 
-## Displacements
+# Immediates
 
-Displacements diesen zur relativen Adressierung von Speicher und
-werden automatisch bei der Speicheradressierung geladen.
+Immediates werden von den jeweiligen OPCODE Handlern eingelesen.
 
-Die Größe von Displacements richtet sich nach der (kompilierenden) Platform.
-
-Wurde der Bytecode auf einer 32bit Platform erzeugt, 
-werden 32bit displacements geladen.
-
-Wurde der Bytecode auf einer 64bit Platform erzeugt, 
-werden 64bit displacements geladen.
-
-Displacements werden immer auf entsprechende "Word" Größe 
-erweitert oder verringert. Hierbei spielt der Opcode-Modus keine Rolle.
-
-## Immediates
-
-Immediates werden benutzt um scalare Werte als Argumente zu übergeben.
-
-Hierbei ist der Opcode-Modus ausschlaggebend wieviele Bytes für eine
-Instruktion geladen werden.
+Die Größe ist in den Handlern vorgegeben, idr. werden bei 8 bit Opcodes 
+8bit Werte eingelesen, bei 16bit Opcodes entsprechend 16bit Werte usw.

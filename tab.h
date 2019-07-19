@@ -2,8 +2,6 @@
 
 #include "def.h"
 
-#define TAB_CALL __attribute__((nonnull))
-
 struct tab {
   u32 size;
   u32 elms;
@@ -30,7 +28,7 @@ struct tab_par {
  * @param the table to initialize
  * @return the initialized table
  */
-extern TAB_CALL void tab_init (struct tab *);
+extern void tab_init (struct tab *);
 
 /**
  * retrieves a item in the table
@@ -39,7 +37,7 @@ extern TAB_CALL void tab_init (struct tab *);
  * @param the name of the item
  * @return the data associated with the given name or NULL if not found
  */
-extern TAB_CALL void * tab_get (struct tab *, char *);
+extern void * tab_get (struct tab *, char *);
 
 /**
  * adds a item to the table
@@ -49,7 +47,7 @@ extern TAB_CALL void * tab_get (struct tab *, char *);
  * @param the data to store
  * @param the size of the data
  */
-extern TAB_CALL void tab_put (struct tab *, char *, void *, szt);
+extern void tab_put (struct tab *, char *, void *, szt);
 
 /**
  * deletes a item in the table
@@ -57,11 +55,11 @@ extern TAB_CALL void tab_put (struct tab *, char *, void *, szt);
  * @param the table
  * @param the name of the entry
  */
-extern TAB_CALL void tab_del (struct tab *, char *);
+extern void tab_del (struct tab *, char *);
 
 /**
  * releases all entries in the table
  * 
  * @param the table
  */
-extern TAB_CALL void tab_free (struct tab *);
+extern void tab_free (struct tab *);

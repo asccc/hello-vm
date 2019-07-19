@@ -43,7 +43,7 @@ static void eval_ins (EVAL_ARGS);
 /**
  * {@inheritdoc}
  */
-VM_CALL void vm_init (struct vm *vm)
+void vm_init (struct vm *vm)
 {
   assert(vm != 0);
   memset(vm->oph, 0, NUM_OPS * sizeof(vm_oph));
@@ -84,7 +84,7 @@ VM_CALL void vm_init (struct vm *vm)
   #include "vm.inc"
 }
 
-VM_CALL void vm_exit (struct vm *vm, enum vm_err err)
+void vm_exit (struct vm *vm, enum vm_err err)
 {
   vm->hlt = true;
   vm->err = err;
@@ -99,7 +99,7 @@ VM_CALL void vm_exit (struct vm *vm, enum vm_err err)
 /**
  * {@inheritdoc}
  */
-VM_CALL void vm_warn (struct vm *vm, const char *msg)
+void vm_warn (struct vm *vm, const char *msg)
 {
   fputs("warning: ", stderr);
   fputs(msg, stderr);
@@ -109,7 +109,7 @@ VM_CALL void vm_warn (struct vm *vm, const char *msg)
 /**
  * {@inheritdoc}
  */
-VM_CALL void vm_free (struct vm *vm)
+void vm_free (struct vm *vm)
 {
   assert(vm != 0);
   // clear program
@@ -123,7 +123,7 @@ VM_CALL void vm_free (struct vm *vm)
 /**
  * {@inheritdoc}
  */
-VM_CALL void vm_exec (struct vm *vm, u8 *ops, szt len)
+void vm_exec (struct vm *vm, u8 *ops, szt len)
 {
   assert(vm != 0);
   assert(ops != 0);
@@ -168,7 +168,7 @@ VM_CALL void vm_exec (struct vm *vm, u8 *ops, szt len)
 /**
  * {@inheritdoc}
  */
-VM_CALL void vm_read (struct vm *vm, szt s, void *o)
+void vm_read (struct vm *vm, szt s, void *o)
 {
   read_mem(vm, s, o);
 }
@@ -249,8 +249,7 @@ static bool read_ins (READ_ARGS)
   a1->reg = (bin >> 1) & 0x1f;
 
   // 1 bit = displacement
-  a0->ext = (bin & 1);
-  a1->ext = (bin & 1);
+  
 
   return true;
 }

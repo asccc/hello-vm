@@ -1,5 +1,6 @@
 #include "vm.h"
 #include "int.h"
+#include "try.h"
 
 #include <stdlib.h>
 #include <stdio.h>

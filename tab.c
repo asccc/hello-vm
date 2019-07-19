@@ -7,7 +7,7 @@
 #include <assert.h>
 
 #ifndef TAB_INITIAL_SIZE
-#define TAB_INITIAL_SIZE 16
+  #define TAB_INITIAL_SIZE 16
 #endif
 
 /** grows the table */
@@ -37,7 +37,7 @@ static void free_ent (struct tab_ent *);
 /**
  * {@inheritdoc}
  */
-TAB_CALL void tab_init (struct tab *tab)
+void tab_init (struct tab *tab)
 {
   assert(tab != 0);
 
@@ -49,7 +49,7 @@ TAB_CALL void tab_init (struct tab *tab)
 /**
  * {@inheritdoc}
  */
-TAB_CALL void * tab_get (struct tab *tab, char *name)
+void * tab_get (struct tab *tab, char *name)
 {
   assert(tab != 0);
   assert(name != 0);
@@ -79,7 +79,7 @@ TAB_CALL void * tab_get (struct tab *tab, char *name)
 /**
  * {@inheritdoc}
  */
-TAB_CALL void tab_put (struct tab *tab, char *name, 
+void tab_put (struct tab *tab, char *name, 
                        void *data, szt size)
 {
   assert(tab != 0);
@@ -143,7 +143,7 @@ TAB_CALL void tab_put (struct tab *tab, char *name,
 /**
  * {@inheritdoc}
  */
-TAB_CALL void tab_del (struct tab *tab, char *name)
+void tab_del (struct tab *tab, char *name)
 {
   assert(tab != 0);
   assert(name != 0);
@@ -180,7 +180,7 @@ TAB_CALL void tab_del (struct tab *tab, char *name)
 /**
  * {@inheritdoc}
  */
-TAB_CALL void tab_free (struct tab *tab) 
+void tab_free (struct tab *tab) 
 {
   assert(tab != 0);
 

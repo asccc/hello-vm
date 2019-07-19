@@ -3,10 +3,9 @@
 #include "vm.h"
 #include "def.h"
 
-#define INT_CALL __attribute__((nonnull))
-#define INT_ATTR __attribute__((nonnull, noinline))
 #define INT_NAME(N) vm__int__ ## N
-#define INT_FUNC(N) INT_ATTR void INT_NAME(N) (struct vm *vm)
+#define INT_FUNC(N) __attribute__((noinline)) \
+  void INT_NAME(N) (struct vm *vm)
 
 typedef void(*int_fn)(struct vm*);
 
@@ -28,4 +27,4 @@ extern INT_FUNC(exit);
  * @param the virtual machine struct
  * @param the interrupt number
  */
-extern INT_CALL void int_exec (struct vm*, u32);
+extern void int_exec (struct vm*, u32);

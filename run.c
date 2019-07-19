@@ -4,7 +4,7 @@
  * Displacement API
  */
 
-RUN_CALL intptr_t dspr_a (DSP_ARGS) 
+intptr_t dspr_a (DSP_ARGS) 
 {
   switch (vm->opm) {
     case MOD_DWORD: {
@@ -27,32 +27,32 @@ RUN_CALL intptr_t dspr_a (DSP_ARGS)
  * Memory API
  */
 
-#define MEMW(N)                                   \
-  RUN_CALL void memw_ ## N (MEM_ARGS, u ## N val) \
-  {                                               \
-    if (ptr < vm->mn) {                           \
-      vm_exit(vm, VM_EMBND);                      \
-      return;                                     \
-    }                                             \
-    if (ptr + (N / 8) > vm->mx) {                 \
-      vm_exit(vm, VM_EMBND);                      \
-      return;                                     \
-    }                                             \
-    *((u ## N*) ptr) = val;                       \
+#define MEMW(N)                          \
+  void memw_ ## N (MEM_ARGS, u ## N val) \
+  {                                      \
+    if (ptr < vm->mn) {                  \
+      vm_exit(vm, VM_EMBND);             \
+      return;                            \
+    }                                    \
+    if (ptr + (N / 8) > vm->mx) {        \
+      vm_exit(vm, VM_EMBND);             \
+      return;                            \
+    }                                    \
+    *((u ## N*) ptr) = val;              \
   }
 
-#define MEMR(N)                                   \
-  RUN_CALL u ## N memr_ ## N (MEM_ARGS)           \
-  {                                               \
-    if (ptr < vm->mn) {                           \
-      vm_exit(vm, VM_EMBND);                      \
-      return 0;                                   \
-    }                                             \
-    if (ptr + (N / 8) > vm->mx) {                 \
-      vm_exit(vm, VM_EMBND);                      \
-      return 0;                                   \
-    }                                             \
-    return *(u ## N*) ptr;                        \
+#define MEMR(N)                          \
+  u ## N memr_ ## N (MEM_ARGS)           \
+  {                                      \
+    if (ptr < vm->mn) {                  \
+      vm_exit(vm, VM_EMBND);             \
+      return 0;                          \
+    }                                    \
+    if (ptr + (N / 8) > vm->mx) {        \
+      vm_exit(vm, VM_EMBND);             \
+      return 0;                          \
+    }                                    \
+    return *(u ## N*) ptr;               \
   }
 
 MEMR(8)
@@ -67,7 +67,7 @@ MEMW(32)
   MEMW(64)
 #endif
 
-RUN_CALL void memw_a (MEM_ARGS, intptr_t val)
+void memw_a (MEM_ARGS, intptr_t val)
 {
 #if VM64
   memw_64(MEM_PASS, val);
@@ -76,7 +76,7 @@ RUN_CALL void memw_a (MEM_ARGS, intptr_t val)
 #endif
 }
 
-RUN_CALL intptr_t memr_a (MEM_ARGS)
+intptr_t memr_a (MEM_ARGS)
 {
 #if VM64
   return (intptr_t) memr_64(MEM_PASS);
@@ -89,7 +89,7 @@ RUN_CALL intptr_t memr_a (MEM_ARGS)
  * ModR/M API
  */
 
-RUN_CALL intptr_t mrm_rd (RUN_ARGS) 
+intptr_t mrm_rd (RUN_ARGS) 
 {
   intptr_t dsp = 
     arg->ext ? dspr_a(vm) : 0;
@@ -113,33 +113,33 @@ RUN_CALL intptr_t mrm_rd (RUN_ARGS)
   }
 }
 
-#define MRMW(N)                                   \
-  RUN_CALL void mrmw_ ## N (RUN_ARGS, u ## N val) \
-  {                                               \
-    switch (arg->type) {                          \
-      case ARG_IRM:                               \
-        memw_ ## N (vm, mrm_rd(vm, arg), val);    \
-        break;                                    \
-      case ARG_REG:                               \
-        regw_ ## N (vm, arg, val);                \
-        break;                                    \
-      default:                                    \
-        vm_exit(vm, VM_EINMR);                    \
-    }                                             \
+#define MRMW(N)                                  \
+  void mrmw_ ## N (RUN_ARGS, u ## N val)         \
+  {                                              \
+    switch (arg->type) {                         \
+      case ARG_IRM:                              \
+        memw_ ## N (vm, mrm_rd(vm, arg), val);   \
+        break;                                   \
+      case ARG_REG:                              \
+        regw_ ## N (vm, arg, val);               \
+        break;                                   \
+      default:                                   \
+        vm_exit(vm, VM_EINMR);                   \
+    }                                            \
   }
 
 #define MRMR(N) \
-  RUN_CALL u ## N mrmr_ ## N (RUN_ARGS)           \
-  {                                               \
-    switch (arg->type) {                          \
-      case ARG_IRM:                               \
-        return memr_ ## N (vm, mrm_rd(vm, arg));  \
-      case ARG_REG:                               \
-        return regr_ ## N (vm, arg);              \
-      default:                                    \
-        vm_exit(vm, VM_EINMR);                    \
-        return 0;                                 \
-    }                                             \
+  u ## N mrmr_ ## N (RUN_ARGS)                   \
+  {                                              \
+    switch (arg->type) {                         \
+      case ARG_IRM:                              \
+        return memr_ ## N (vm, mrm_rd(vm, arg)); \
+      case ARG_REG:                              \
+        return regr_ ## N (vm, arg);             \
+      default:                                   \
+        vm_exit(vm, VM_EINMR);                   \
+        return 0;                                \
+    }                                            \
   }
 
 MRMR(8)
@@ -158,51 +158,51 @@ MRMW(32)
  * Register API
  */
 
-#define REGR(N)                                   \
-  RUN_CALL u ## N regr_ ## N (RUN_ARGS)           \
-  {                                               \
-    switch (arg->reg) {                           \
-      case REG_R0:                                \
-        return vm->r0;                            \
-      case REG_R1:                                \
-        return vm->r1;                            \
-      case REG_R2:                                \
-        return vm->r2;                            \
-      case REG_BP:                                \
-        return vm->bp;                            \
-      case REG_SP:                                \
-        return vm->sp;                            \
-    }                                             \
-    vm_exit(vm, VM_EUNKR);                        \
-    return 0;                                     \
+#define REGR(N)                          \
+  u ## N regr_ ## N (RUN_ARGS)           \
+  {                                      \
+    switch (arg->reg) {                  \
+      case REG_R0:                       \
+        return vm->r0;                   \
+      case REG_R1:                       \
+        return vm->r1;                   \
+      case REG_R2:                       \
+        return vm->r2;                   \
+      case REG_BP:                       \
+        return vm->bp;                   \
+      case REG_SP:                       \
+        return vm->sp;                   \
+    }                                    \
+    vm_exit(vm, VM_EUNKR);               \
+    return 0;                            \
   }
 
-#define REGW(N,M)                                 \
-  RUN_CALL void regw_ ## N (RUN_ARGS, u ## N val) \
-  {                                               \
-    switch (arg->reg) {                           \
-      case REG_R0:                                \
-        vm->r0 &= M;                              \
-        vm->r0 |= val;                            \
-        return;                                   \
-      case REG_R1:                                \
-        vm->r1 &= M;                              \
-        vm->r1 |= val;                            \
-        return;                                   \
-      case REG_R2:                                \
-        vm->r2 &= M;                              \
-        vm->r2 |= val;                            \
-        return;                                   \
-      case REG_BP:                                \
-        vm->bp &= M;                              \
-        vm->bp |= val;                            \
-        return;                                   \
-      case REG_SP:                                \
-        vm->sp &= M;                              \
-        vm->sp |= val;                            \
-        return;                                   \
-    }                                             \
-    vm_exit(vm, VM_EUNKR);                        \
+#define REGW(N,M)                        \
+  void regw_ ## N (RUN_ARGS, u ## N val) \
+  {                                      \
+    switch (arg->reg) {                  \
+      case REG_R0:                       \
+        vm->r0 &= M;                     \
+        vm->r0 |= val;                   \
+        return;                          \
+      case REG_R1:                       \
+        vm->r1 &= M;                     \
+        vm->r1 |= val;                   \
+        return;                          \
+      case REG_R2:                       \
+        vm->r2 &= M;                     \
+        vm->r2 |= val;                   \
+        return;                          \
+      case REG_BP:                       \
+        vm->bp &= M;                     \
+        vm->bp |= val;                   \
+        return;                          \
+      case REG_SP:                       \
+        vm->sp &= M;                     \
+        vm->sp |= val;                   \
+        return;                          \
+    }                                    \
+    vm_exit(vm, VM_EUNKR);               \
   }
 
 REGR(8)
@@ -221,12 +221,12 @@ REGW(32, MSK_32)
  * Immediate API
  */
 
-#define IMMR(N)                         \
-  RUN_CALL u ## N immr_ ## N (IMM_ARGS) \
-  {                                     \
-    u ## N out = 0;                     \
-    vm_read(vm, (N / 8u), &out);        \
-    return out;                         \
+#define IMMR(N)                  \
+  u ## N immr_ ## N (IMM_ARGS)   \
+  {                              \
+    u ## N out = 0;              \
+    vm_read(vm, (N / 8u), &out); \
+    return out;                  \
   }
 
 IMMR(8)

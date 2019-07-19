@@ -10,8 +10,6 @@
 #define HVM_M32 ((3 << 24) | HVM_NUM)
 #define HVM_M64 ((4 << 24) | HVM_NUM)
 
-#define VM_CALL __attribute__((nonnull))
-
 struct vm;
 struct vm_ins;
 
@@ -45,12 +43,6 @@ struct vm_ins;
 
 #if VM64
   #define SGN_64 0x8000000000000000
-#endif
-
-#if VM64
-  #define VM_EX64 VM_CALL
-#else
-  #define VM_EX64 VM_CALL __attribute__((unused))
 #endif
 
 /**
@@ -307,7 +299,7 @@ struct vm {
  * @param the virtual machine struct^
  * @param a error message
  */
-extern VM_CALL void vm_exit (struct vm *, enum vm_err);
+extern void vm_exit (struct vm *, enum vm_err);
 
 /**
  * emits a warning message in the vm-context
@@ -315,21 +307,21 @@ extern VM_CALL void vm_exit (struct vm *, enum vm_err);
  * @param the virtual machine struct
  * @param the warning message
  */
-extern VM_CALL void vm_warn (struct vm *, const char *);
+extern void vm_warn (struct vm *, const char *);
 
 /**
  * virtual machine initializer
  * 
  * @param  the virtual machine struct
  */
-extern VM_CALL void vm_init (struct vm *);
+extern void vm_init (struct vm *);
 
 /**
  * cleanup virtual machine
  * 
  * @param the virtual machine struct
  */
-extern VM_CALL void vm_free (struct vm *);
+extern void vm_free (struct vm *);
 
 /**
  * virtual machine executor
@@ -338,7 +330,7 @@ extern VM_CALL void vm_free (struct vm *);
  * @param  the opcodes to execute
  * @param  the number of bytes to execute
  */
-extern VM_CALL void vm_exec (struct vm *, u8*, szt);
+extern void vm_exec (struct vm *, u8*, szt);
 
 /**
  * reads the requested number of bytes from
@@ -349,5 +341,5 @@ extern VM_CALL void vm_exec (struct vm *, u8*, szt);
  * @param the number of bytes to read
  * @param the buffer
  */
-extern VM_CALL void vm_read (struct vm*, szt, void*);
+extern void vm_read (struct vm*, szt, void*);
 

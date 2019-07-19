@@ -6,7 +6,7 @@
 /**
  * {@inheritdoc}
  */
-INT_CALL void int_exec (struct vm *vm, u32 num)
+void int_exec (struct vm *vm, u32 num)
 {
   switch (num) {
     case IC_DUMP: INT_NAME(dump)(vm); break;
